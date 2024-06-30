@@ -1,4 +1,4 @@
-![example workflow](https://github.com/FortesenseLabs/metatrader-terminal/actions/workflows/deploy-metatrader-terminal-image.yml/badge.svg)
+![example workflow](https://github.com/FortesenseLabs/metatrader-terminal/actions/workflows/deploy.yml/badge.svg)
 
 # MetaTrader (with vnc-alpine)
 
@@ -87,6 +87,10 @@ login to shell
 ```bash
  make shell
 ```
+
+## TODOS
+
+- write a client in python (can follow the python-binance format)
 
 ## Resources
 

@@ -3,4 +3,3 @@ imagePullSecret: metatrader-terminal-config
 images:
   db: postgres:13
   metatrader: metatrader
-  exchange: exchange

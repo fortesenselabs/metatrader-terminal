@@ -2,9 +2,7 @@
 load('ext://namespace', 'namespace_create', 'namespace_inject')
 namespace_create('metatrader-terminal')
 
-docker_build('metatrader', 'services/metatrader', dockerfile = 'services/metatrader/Dockerfile.mt5')
-docker_build('exchange', 'services/exchange', dockerfile = 'services/exchange/Dockerfile.dev')
-
+docker_build('metatrader', 'metatrader-5', dockerfile = 'metatrader-5/Dockerfile.mt5')
 
 yaml = helm(
   'infrastructure/k8s',
@@ -20,7 +18,7 @@ yaml = helm(
 
 k8s_yaml(yaml)
 
-k8s_resource('metatrader', port_forwards=['5900', '8000'])
+k8s_resource('metatrader', port_forwards=['5900', '5901', '8000'])
 k8s_resource('db', port_forwards='5432')
 
 

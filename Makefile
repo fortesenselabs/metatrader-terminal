@@ -1,8 +1,7 @@
 NAMESPACE=metatrader-terminal
 
-
 build:
-	docker build -f Dockerfile.mt5 -t fortesenselabsmt .
+	docker build -f metatrader-5/Dockerfile.mt5 -t fortesenselabsmt metatrader-5/
 
 run: build
 	docker run --rm -dit -p 5900:5900 -p 8000:8000 --name fortesenselabsmt -v fortesenselabsmt:/data fortesenselabsmt

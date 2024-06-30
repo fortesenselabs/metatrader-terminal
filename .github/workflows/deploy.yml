@@ -23,8 +23,8 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v3
         with:
-          context: services/metatrader/
-          file: services/metatrader/Dockerfile.mt5
+          context: metatrader-5/
+          file: metatrader-5/Dockerfile.mt5
           platforms: linux/amd64
           push: true
           tags: fortesenselabs/metatrader:lastest,fortesenselabs/metatrader:5

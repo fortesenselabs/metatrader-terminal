@@ -46,11 +46,5 @@ spec:
               value: "{{ .Values.env.metatrader.MT5_SERVER }}"
             - name: MT_FILES_DIR
               value: "{{ .Values.env.metatrader.MT_FILES_DIR }}"
-            - name: NATS_URL
-              value: "{{ .Values.env.metatrader.NATS_URL }}"
-            - name: NATS_USER
-              value: "{{ .Values.env.nats.USER }}"
-            - name: NATS_PASS
-              value: "{{ .Values.env.nats.PASS }}"
             - name: DATABASE_URL
               value: "{{ .Values.env.metatrader.DATABASE_URL }}"
