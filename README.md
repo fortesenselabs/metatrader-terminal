@@ -59,7 +59,7 @@ Create a .env file from the .env.example file
 
 ```bash
 python -m venv .venv # (use python3.9)
-python -m pip install -r requirements.txt
+python -m pip install -r metatrader-5/requirements.txt
 # python -m pytest -v
 ```
 
@@ -99,6 +99,7 @@ login to shell
 - https://www.mtsocketapi.com/doc5/for_developers/Python.html
 - https://github.com/AwesomeTrading/lws2mql
 - https://www.oreilly.com/library/view/mastering-financial-pattern/9781098120467/ch01.html
+- https://github.com/ejtraderLabs/Metatrader5-Docker
 
 ## Errors:
 
