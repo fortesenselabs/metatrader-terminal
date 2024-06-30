@@ -23,10 +23,9 @@ The container is meant to serve a basis for containerised X11 applications wine 
 - Openbox minimal Window Manager
 - Graphical login
 - wine64
-- pyzmq and zmq
 - python3
 
-Based on Alpine Linux, the container is less than 250 MB in size. Most of this is the X11 window system wine python3 and pyzmq.
+Based on Alpine Linux, the container is less than 500 MB in size. Most of this is the X11 window system wine python3.
 
 ### Extra:
 
