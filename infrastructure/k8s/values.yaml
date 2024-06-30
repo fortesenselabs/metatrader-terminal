@@ -1,0 +1,6 @@
+# This is same as created in kubernetes_secret (infrastructure/main.tf)
+imagePullSecret: metatrader-terminal-config
+images:
+  db: postgres:13
+  metatrader: metatrader
+  exchange: exchange

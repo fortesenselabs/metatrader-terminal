@@ -1,0 +1,18 @@
+{
+  "files.associations": {
+    "*.mq5": "c",
+    "locale": "c",
+    "span": "c",
+    "type_traits": "c",
+    "memory": "c",
+    "utility": "c",
+    "array": "c",
+    "string": "c",
+    "string_view": "c",
+    "ranges": "c",
+    "iterator": "c",
+    "vector": "c",
+    "system_error": "c",
+    "__locale": "c"
+  }
+}

@@ -1,0 +1,5 @@
+requests
+websockets
+pydantic
+python-dotenv
+fastapi[all]

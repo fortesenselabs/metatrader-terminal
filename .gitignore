@@ -1,0 +1,38 @@
+# Config
+.env
+*kubeconfig.y*ml
+
+# Web
+node_modules
+.DS_Store
+dist
+dist-ssr
+*.local
+
+# Helm
+*env.y*ml
+
+# Terraform
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+*.tfvars
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+
+# Python
+__pycache__
+
+# Misc.
+**/tmp/*
+.venv
+screenshot.png
+encoded_file.txt
+decoded_file.txt
+output.log

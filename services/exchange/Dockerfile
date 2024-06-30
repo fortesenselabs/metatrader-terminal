@@ -1,0 +1,14 @@
+FROM golang:1.18-alpine AS builder
+ENV GOOS linux
+ENV CGO_ENABLED 0
+WORKDIR /app
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . ./
+RUN go test ./...
+RUN go build -o app
+
+FROM gcr.io/distroless/static AS production
+COPY --from=builder app ./
+EXPOSE 80
+CMD ["/app"]
