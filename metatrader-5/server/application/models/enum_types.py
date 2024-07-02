@@ -1,5 +1,6 @@
+from datetime import datetime, timedelta, timezone
 from enum import Enum
-from typing import List
+from typing import List, Union
 
 
 class AccountType(Enum):
@@ -74,7 +75,7 @@ class TimeFrame(Enum):
     MN1 = "MN1"
 
     @classmethod
-    def from_string(cls, string):
+    def from_string(cls, string) -> Union["TimeFrame", None]:
         try:
             return cls[string]
         except KeyError:
@@ -111,6 +112,33 @@ class TimeFrame(Enum):
         }
 
         return interval_mapping.get(self, None)
+
+    def to_timedelta(self) -> timedelta:
+        TIMEFRAME_MAP = {
+            TimeFrame.M1: timedelta(minutes=1),
+            TimeFrame.M2: timedelta(minutes=2),
+            TimeFrame.M3: timedelta(minutes=3),
+            TimeFrame.M4: timedelta(minutes=4),
+            TimeFrame.M5: timedelta(minutes=5),
+            TimeFrame.M6: timedelta(minutes=6),
+            TimeFrame.M10: timedelta(minutes=10),
+            TimeFrame.M12: timedelta(minutes=12),
+            TimeFrame.M15: timedelta(minutes=15),
+            TimeFrame.M20: timedelta(minutes=20),
+            TimeFrame.M30: timedelta(minutes=30),
+            TimeFrame.H1: timedelta(hours=1),
+            TimeFrame.H2: timedelta(hours=2),
+            TimeFrame.H3: timedelta(hours=3),
+            TimeFrame.H4: timedelta(hours=4),
+            TimeFrame.H6: timedelta(hours=6),
+            TimeFrame.H8: timedelta(hours=8),
+            TimeFrame.H12: timedelta(hours=12),
+            TimeFrame.D1: timedelta(days=1),
+            TimeFrame.W1: timedelta(weeks=1),
+            TimeFrame.MN1: timedelta(days=30),  # Approximation
+        }
+
+        return TIMEFRAME_MAP.get(self, timedelta())
 
 
 class WsRequestMethod(Enum):
