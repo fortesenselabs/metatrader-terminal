@@ -5,6 +5,7 @@ from application.config import Settings, AppLogger
 from application.utils import get_server_time
 from application.models import (
     PingMessage,
+    SystemStatusResponse,
     ServerTimeResponse,
     TickInfoResponse,
     AccountInfoResponse,
@@ -17,6 +18,8 @@ from application.models import (
     SubscribeResponse,
     SymbolMarketData,
     Permission,
+    KlineRequest,
+    KlineResponse,
 )
 from application.services import (
     ExchangeInfoService,
@@ -31,15 +34,15 @@ rest_router = APIRouter(tags=["API"])
 
 
 class RestRouter:
-    def __init__(self, logger: AppLogger, processor: MetaTraderDataProcessor):
-        self.logger = logger
+    def __init__(self, processor: MetaTraderDataProcessor):
+        self.logger = AppLogger(name=__class__.__name__)
         self.processor = processor
 
         # Services
-        self.exchange_info_service = ExchangeInfoService(logger, processor)
-        self.order_service = OrderService(logger, processor)
-        self.kline_service = KlineService(logger, processor)
-        self.account_service = AccountService(logger, processor)
+        self.exchange_info_service = ExchangeInfoService(processor)
+        self.order_service = OrderService(processor)
+        self.kline_service = KlineService(processor)
+        self.account_service = AccountService(processor)
 
         # Add routes
         self.add_routes()
@@ -48,6 +51,11 @@ class RestRouter:
         rest_router.add_api_route("/ping", self.ping_server, response_model=PingMessage)
         rest_router.add_api_route(
             "/time", self.fetch_server_time, response_model=ServerTimeResponse
+        )
+        rest_router.add_api_route(
+            "/system/status",
+            self.get_system_status,
+            response_model=SystemStatusResponse,
         )
         rest_router.add_api_route(
             "/account", self.get_account_info, response_model=AccountInfoResponse
@@ -71,6 +79,12 @@ class RestRouter:
             methods=["GET"],
         )
         rest_router.add_api_route(
+            "/klines",
+            self.get_latest_klines,
+            response_model=KlineResponse,
+            methods=["POST"],
+        )
+        rest_router.add_api_route(
             "/order", self.create_order, response_model=OrderResponse, methods=["POST"]
         )
         rest_router.add_api_route(
@@ -89,6 +103,9 @@ class RestRouter:
     async def ping_server(self):
         response = {"message": "MetaTrader 5 API Server"}
         return PingMessage(**response)
+
+    async def get_system_status(self):
+        return SystemStatusResponse()
 
     async def fetch_server_time(self):
         """
@@ -159,13 +176,13 @@ class RestRouter:
         order_info = await self.order_service.create_order(order_request, False)
         return order_info
 
-    async def cancel_order(self, order_request: CancelOrderRequest):
+    async def cancel_order(self, request: CancelOrderRequest):
         """
         Cancel an order.
         If the symbol and the order ID is known.
         Intended for non-active orders i.e orders that have not been trigger yet.
         """
-        open_orders_info = await self.order_service.close_order(order_request)
+        open_orders_info = await self.order_service.close_order(request)
         return open_orders_info
 
     async def cancel_open_orders(self, symbol: str):
@@ -177,9 +194,16 @@ class RestRouter:
         open_orders_info = await self.order_service.close_open_orders(symbol)
         return open_orders_info
 
+    async def get_latest_klines(self, request: KlineRequest):
+        data = await self.kline_service.get_latest_klines(request)
+        return KlineResponse(result=data)
 
-def get_rest_router(logger: AppLogger, processor: MetaTraderDataProcessor) -> APIRouter:
-    router_instance = RestRouter(logger, processor)
+    async def get_historical_klines(self):
+        return
+
+
+def get_rest_router(processor: MetaTraderDataProcessor) -> APIRouter:
+    router_instance = RestRouter(processor)
     return rest_router
 
 
