@@ -1,9 +1,9 @@
+from datetime import datetime, timezone
 from typing import List, Optional
-from enum import Enum
-from pydantic import BaseModel, Field
-from application.models.exchange_info_models import RateLimit
-from application.models.symbol_models import SymbolMarketData
-from application.models.enum_types import WsRequestMethod
+from pydantic import BaseModel, Field, model_validator
+from .exchange_info_models import RateLimit
+from .symbol_models import SymbolMarketData
+from .enum_types import TimeFrame, WsRequestMethod
 
 
 class TickInfoResponse(BaseModel):
@@ -36,47 +36,82 @@ class SubscribeResponse(BaseModel):
     all: bool
 
 
-class KlineResponse(BaseModel):
-    id: str
-    status: int
-    result: List[List]
-    rateLimits: Optional[List[RateLimit]] = None
-
-
-class KlineParams(BaseModel):
-    symbol: str
-    interval: str
-    startTime: Optional[int] = None
-    endTime: Optional[int] = None
-    timeZone: Optional[str] = Field(default="0", description="Default: 0 (UTC)")
-    limit: Optional[int] = Field(
-        default=500, le=1000, description="Default 500; max 1000"
-    )
-
-
-# WsKline define websocket kline
-class WsKline(BaseModel):
+# Kline
+class Kline(BaseModel):
     start_time: Optional[int]
     end_time: Optional[int]
+    time: Optional[int]
     symbol: str
     interval: str
-    open: str
-    close: str
-    high: str
-    low: str
-    volume: str
+    open: float
+    close: float
+    high: float
+    low: float
+    volume: float
     is_final: bool
 
 
-# WsKlineEvent define websocket kline event
-class WsKlineEvent(BaseModel):
+# class KlineRequest(BaseModel):
+#     symbol: str
+#     interval: TimeFrame
+#     start_time: Optional[float] = Field(
+#         default_factory=lambda: calculate_start_time(TimeFrame.D1)
+#     )
+#     end_time: Optional[float] = Field(
+#         default_factory=lambda: datetime.now(timezone.utc).timestamp()
+#     )
+#     time_zone: Optional[str] = Field(default="0", description="Default: 0 (UTC)")
+#     limit: Optional[int] = Field(default=10, le=500, description="Default 10; max 500")
+
+#     @model_validator(mode="after")
+#     def adjust_time(self):
+#         _interval = (
+#             self.interval if self.interval != TimeFrame.CURRENT else TimeFrame.M1
+#         )
+#         self.start_time = calculate_start_time(_interval)
+#         self.end_time = (
+#             self.end_time
+#             if self.end_time is not None
+#             else datetime.now(timezone.utc).timestamp()
+#         )
+#         return self
+
+
+class KlineRequest(BaseModel):
+    symbol: str
+    interval: TimeFrame
+    start_time: Optional[float] = None
+    end_time: Optional[float] = None
+    time_zone: Optional[str] = Field(default="0", description="Default: 0 (UTC)")
+    limit: Optional[int] = Field(default=10, le=500, description="Default 10; max 500")
+
+    @model_validator(mode="after")
+    def adjust_time(self):
+        self.interval = (
+            self.interval if self.interval != TimeFrame.CURRENT else TimeFrame.M1
+        )
+        return self
+
+
+# WsKline define websocket kline
+
+
+class KlineResponse(BaseModel):
+    result: List[Kline]
+    id: Optional[str] = None
+    status: Optional[int] = None
+    rateLimits: Optional[List[RateLimit]] = None
+
+
+# KlineEvent websocket kline event
+class KlineEvent(BaseModel):
     event: Optional[str] = None
     time: Optional[int] = None
     symbol: str
-    kline: Optional[WsKline] = None
+    kline: Optional[Kline] = None
 
 
 class WsRequest(BaseModel):
     id: str
     method: Optional[WsRequestMethod] = None
-    params: Optional[KlineParams] = None
+    params: Optional[KlineRequest] = None

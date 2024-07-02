@@ -6,8 +6,7 @@ from typing import Dict, List, Union
 from application.lib.dwx_client import DWXClient
 from application.config import AppLogger
 from typing import Optional
-from application.models.enum_types import TimeFrame, DataMode
-from application.models.mt_models import (
+from application.models import (
     BarDataEvent,
     MTOrderType,
     MTOrderEvent,
@@ -15,9 +14,14 @@ from application.models.mt_models import (
     SymbolData,
     TickDataEvent,
     MTOrderStatus,
+    Kline,
+    TimeFrame,
+    DataMode,
+    OrderType,
+    SideType,
+    SymbolMarketData,
 )
-from application.models.orders_models import OrderType, SideType
-from application.models.symbol_models import SymbolMarketData
+from application.utils import date_to_timestamp
 
 
 class MetaTraderDataProcessor:
@@ -29,13 +33,12 @@ class MetaTraderDataProcessor:
 
     def __init__(
         self,
-        logger: AppLogger,
         mt_directory_path: str,
         sleep_delay: float = 0.005,  # 5 ms for time.sleep()
         max_retry_command_seconds: int = 10,  # retry to send the command for 10 seconds if not successful.
         verbose: bool = True,
     ):
-        self.logger = logger
+        self.logger = AppLogger(name=__class__.__name__)
         self.mt_directory_path = mt_directory_path
         self.sleep_delay = sleep_delay
         self.max_retry_command_seconds = max_retry_command_seconds
@@ -65,6 +68,8 @@ class MetaTraderDataProcessor:
         self.current_on_tick_data: Optional[TickDataEvent] = None
         self.current_on_bar_data: Optional[BarDataEvent] = None
         self.symbols_data: Dict[int, SymbolData] = {}
+        self.historical_klines: Optional[List[Kline]] = None
+        self.historic_trades = None
 
         #
         self.LOW_RAND_RANGE = 0
@@ -83,6 +88,9 @@ class MetaTraderDataProcessor:
             sleep(sleep_delay)
         return False
 
+    def orders_event_checker(self):
+        return self.orders is not None
+
     def get_data(
         self, symbol: str, mode: DataMode
     ) -> Union[TickDataEvent, BarDataEvent, None]:
@@ -98,6 +106,9 @@ class MetaTraderDataProcessor:
 
     def active_symbols_event_checker(self):
         return self.symbols_data is not None
+
+    def historical_klines_event_checker(self):
+        return self.historical_klines is not None
 
     def get_active_symbols(self, symbol: str = "") -> List[SymbolData]:
         self.dwx.get_active_symbols(symbol)
@@ -131,17 +142,27 @@ class MetaTraderDataProcessor:
 
         return balances
 
-    def get_historic_data(
+    async def get_historic_data(
         self,
         symbol: str = "EURUSD",
         time_frame: str = "D1",
-    ):
-        # Request historic data for the last 30 days
-        end = datetime.now(timezone.utc)
-        start = end - timedelta(days=30)
-        self.dwx.get_historic_data(
-            symbol, time_frame, start.timestamp(), end.timestamp()
-        )
+        start: float = (datetime.now(timezone.utc) - timedelta(days=30)).timestamp(),
+        end: float = datetime.now(timezone.utc).timestamp(),
+    ) -> Union[List[Kline], None]:
+        self.dwx.get_historic_data(symbol, time_frame, start, end)
+        # TODO: fix 2024.07.02 12:06:59.187	DWX_Server_MT5 (Volatility 50 Index,M1)	INFO:
+        # The difference between requested start date and returned start date is relatively large (1862.1 days).
+        # Maybe the data is not available on MetaTrader.
+
+        if self.wait_for_event(
+            event_checker=self.historical_klines_event_checker, sleep_delay=0.008
+        ):
+            if self.historical_klines[0].interval != time_frame:
+                time.sleep(0.1)
+
+            return self.historical_klines
+
+        return None
 
     def subscribe_symbols(
         self,
@@ -168,9 +189,6 @@ class MetaTraderDataProcessor:
             subscribed_symbols.append(symbol_data.symbol)
 
         return subscribed_symbols
-
-    def orders_event_checker(self):
-        return self.orders is not None
 
     def open_order(
         self,
@@ -350,11 +368,28 @@ class MetaTraderDataProcessor:
 
         self.current_on_bar_data = bar_event
 
-    def on_historic_data(self, symbol, time_frame, data):
+    def on_historic_data(self, symbol, time_frame, data: Dict[str, dict]):
         self.logger.info(f"historic_data: {symbol}, {time_frame}, {len(data)} bars")
+        self.historical_klines = [
+            Kline(
+                start_time=None,
+                end_time=None,
+                time=date_to_timestamp(_date),
+                symbol=symbol,
+                interval=time_frame,
+                open=kline.get("open"),
+                close=kline.get("close"),
+                high=kline.get("high"),
+                low=kline.get("low"),
+                volume=kline.get("tick_volume"),
+                is_final=True,
+            )
+            for _date, kline in data.items()
+        ]
 
     def on_historic_trades(self):
         self.logger.info(f"historic_trades: {len(self.dwx.historic_trades)}")
+        self.historic_trades = self.dwx.historic_trades
 
     def on_message(self, message):
         if message["type"] == "ERROR":
@@ -376,7 +411,7 @@ class MetaTraderDataProcessor:
         )
 
         if self.dwx.open_orders:
-            open_orders = [
+            self.orders = [
                 NewOrderEvent(
                     ticket_id=order_id,
                     symbol=order_data.get("symbol"),
@@ -393,7 +428,6 @@ class MetaTraderDataProcessor:
                 )
                 for order_id, order_data in self.dwx.open_orders.items()
             ]
-            self.orders = open_orders
         else:
             self.orders = None
 

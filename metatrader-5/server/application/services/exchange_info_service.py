@@ -24,10 +24,9 @@ RATE_LIMIT = RateLimit(
 class ExchangeInfoService:
     def __init__(
         self,
-        logger: AppLogger,
         processor: MetaTraderDataProcessor,
     ):
-        self.logger = logger
+        self.logger = AppLogger(name=__class__.__name__)
         self.processor = processor
 
     async def get_exchange_info(

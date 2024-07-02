@@ -1,5 +1,6 @@
-from datetime import datetime, timezone
+import re
 from typing import List
+from datetime import datetime, timezone
 from application.models import ServerTimeResponse
 
 
@@ -53,6 +54,65 @@ def date_to_timestamp(date_str: str) -> int:
 
     return timestamp
 
+
+def split_by_number(timeframe: str):
+    # Regular expression to find the number in the string
+    match = re.search(r"(\d+)", timeframe)
+    if match:
+        # Extract the prefix and the number
+        number = match.group(1)
+        parts = re.split(number, timeframe)
+        return parts[0], number
+    return None, None
+
+
+# def calculate_start_time(interval: TimeFrame) -> float:
+#     timedelta_value = get_timeframe_timedelta(interval)
+#     return (datetime.now(timezone.utc) - timedelta_value).timestamp()
+
+
+# TIMEFRAME_MAP = {
+#     TimeFrame.M1: lambda limit: timedelta(minutes=limit),
+#     TimeFrame.M2: lambda limit: timedelta(minutes=limit),
+#     TimeFrame.M3: lambda limit: timedelta(minutes=limit),
+#     TimeFrame.M4: lambda limit: timedelta(minutes=limit),
+#     TimeFrame.M5: lambda limit: timedelta(minutes=limit),
+#     TimeFrame.M6: lambda limit: timedelta(minutes=limit),
+#     TimeFrame.M10: timedelta(minutes=10),
+#     TimeFrame.M12: timedelta(minutes=12),
+#     TimeFrame.M15: timedelta(minutes=15),
+#     TimeFrame.M20: timedelta(minutes=20),
+#     TimeFrame.M30: timedelta(minutes=30),
+#     TimeFrame.H1: timedelta(hours=1),
+#     TimeFrame.H2: timedelta(hours=2),
+#     TimeFrame.H3: timedelta(hours=3),
+#     TimeFrame.H4: timedelta(hours=4),
+#     TimeFrame.H6: timedelta(hours=6),
+#     TimeFrame.H8: timedelta(hours=8),
+#     TimeFrame.H12: timedelta(hours=12),
+#     TimeFrame.D1: timedelta(days=1),
+#     TimeFrame.W1: timedelta(weeks=1),
+#     TimeFrame.MN1: timedelta(days=30),  # Approximation
+# }
+
+# def get_timeframe_timedelta(time_frame: TimeFrame, offset: int = 1) -> timedelta:
+#     TIMEFRAME_MAP = {
+#         "M": lambda limit: timedelta(minutes=limit),
+#         "H": lambda limit: timedelta(hours=limit),
+#         "D": lambda limit: timedelta(days=limit),
+#         "W": lambda limit: timedelta(weeks=limit),
+#         "MN": lambda limit: timedelta(days=30),  # TODO: Month Data might not work well
+#     }
+#     interval = time_frame.to_interval()
+#     if interval is not None:
+#         prefix, _ = split_by_number(time_frame.value)
+#         return TIMEFRAME_MAP[prefix](interval * offset)
+
+#     # from_string()
+#     # check for minutes
+#     # check for hours
+#     # get there intervals before passing the to the timedelta function
+#     return timedelta()
 
 # @api_router.post("/subscribe", response_model=SubscribeResponse)
 # async def subscribe(request: SubscribeRequest):

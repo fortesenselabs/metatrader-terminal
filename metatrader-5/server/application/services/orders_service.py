@@ -8,6 +8,7 @@ from application.models.orders_models import (
 )
 from application.models.mt_models import MTOrderType, MTOrderStatus
 
+
 class OrderService:
     """
     Service class for managing orders with MetaTrader.
@@ -17,15 +18,14 @@ class OrderService:
         processor (MetaTraderDataProcessor): The MetaTrader data processor instance.
     """
 
-    def __init__(self, logger: AppLogger, processor: MetaTraderDataProcessor):
+    def __init__(self, processor: MetaTraderDataProcessor):
         """
         Initialize the OrderService with a logger and a MetaTrader data processor.
 
         Args:
-            logger (AppLogger): The logger instance.
             processor (MetaTraderDataProcessor): The MetaTrader data processor instance.
         """
-        self.logger = logger
+        self.logger = AppLogger(name=__class__.__name__)
         self.processor = processor
 
     async def get_orders(self):
@@ -40,7 +40,9 @@ class OrderService:
         """
         pass
 
-    async def create_order(self, order_request: CreateOrderRequest, is_test: bool) -> OrderResponse:
+    async def create_order(
+        self, order_request: CreateOrderRequest, is_test: bool
+    ) -> OrderResponse:
         """
         Create a new order.
 
@@ -57,7 +59,9 @@ class OrderService:
 
         mt_order = self.processor.open_order(
             symbol=order_request.symbol,
-            order_type=MTOrderType.get_mt_order_type(order_request.side, order_request.type),
+            order_type=MTOrderType.get_mt_order_type(
+                order_request.side, order_request.type
+            ),
             price=float(order_request.price) or 0,
             lots=float(order_request.quantity) or 0,
             stop_loss=float(order_request.stop_loss_price) or 0,
@@ -77,7 +81,11 @@ class OrderService:
                 "symbol": mt_order.symbol,
                 "status": mt_order.status.value,
                 "price": str(mt_order.price),
-                "orig_qty": str(order_request.quantity) if order_request.quantity is not None else "0",
+                "orig_qty": (
+                    str(order_request.quantity)
+                    if order_request.quantity is not None
+                    else "0"
+                ),
                 "executed_qty": str(mt_order.lots),
                 "time_in_force": mt_order.time_in_force,
                 "type": order_request.type,
@@ -96,10 +104,14 @@ class OrderService:
         Returns:
             OrderResponse: The response object containing closed order details.
         """
-        mt_order = self.processor.close_order(ticket_id=order_request.order_id, symbol=order_request.symbol)
+        mt_order = self.processor.close_order(
+            ticket_id=order_request.order_id, symbol=order_request.symbol
+        )
 
         if mt_order is None:
-            return OrderResponse(order_id=order_request.order_id, symbol=order_request.symbol)
+            return OrderResponse(
+                order_id=order_request.order_id, symbol=order_request.symbol
+            )
 
         _order = mt_order[0]
         response = OrderResponse(

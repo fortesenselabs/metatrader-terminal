@@ -18,10 +18,9 @@ from application.models.symbol_models import (
 class AccountService:
     def __init__(
         self,
-        logger: AppLogger,
         processor: MetaTraderDataProcessor,
     ):
-        self.logger = logger
+        self.logger = AppLogger(name=__class__.__name__)
         self.processor = processor
         self.account_info: Optional[AccountInfoResponse] = None
 
