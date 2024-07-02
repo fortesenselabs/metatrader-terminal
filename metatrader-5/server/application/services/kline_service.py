@@ -1,32 +1,28 @@
-from typing import Optional, List, Dict, Union
+from datetime import datetime, timezone
+from typing import Optional, List, Dict, Union, Tuple
 from application.config.logger import AppLogger
-from application.lib.processor import MetaTraderDataProcessor
-from application.models.symbol_models import (
+from application.lib import MetaTraderDataProcessor
+from application.models import (
     SymbolMarketData,
-)
-from application.models.kline_models import (
     SubscribeRequest,
     SubscribeResponse,
-    WsKline,
-    WsKlineEvent,
+    Kline,
+    KlineEvent,
+    KlineRequest,
     WsRequest,
     TickInfoResponse,
     WsRequestMethod,
-)
-from application.models.mt_models import (
     BarDataEvent,
     TickDataEvent,
-)
-from application.models.enum_types import (
     TimeFrame,
     DataMode,
 )
-from application.utils.utils import date_to_timestamp
+from application.utils import date_to_timestamp
 
 
 class KlineService:
-    def __init__(self, logger: AppLogger, processor: MetaTraderDataProcessor):
-        self.logger = logger
+    def __init__(self, processor: MetaTraderDataProcessor):
+        self.logger = AppLogger(name=__class__.__name__)
         self.processor = processor
         self.connected_clients = set()
         self.previous_klines: Dict[str, set] = {}
@@ -72,7 +68,61 @@ class KlineService:
                 self.connected_clients.add(request.id)
         return
 
-    async def get_kline_data(self, symbol: str, interval: TimeFrame) -> WsKlineEvent:
+    def parse_time(
+        self,
+        interval: TimeFrame,
+        start_time: Optional[datetime],
+        end_time: Optional[datetime],
+        limit: int = 5,
+    ) -> Tuple[float, float]:
+        if start_time is None and end_time is None:
+            end_time = datetime.now(timezone.utc)  #
+            timedelta_value = interval.to_timedelta() * limit
+            start_time = (end_time - timedelta_value).timestamp()
+            end_time = end_time.timestamp()
+
+        if start_time is None:
+
+            timedelta_value = interval.to_timedelta() * limit
+            start_time = (end_time - timedelta_value).timestamp()
+
+        return start_time, end_time
+
+    async def get_latest_klines(self, request: KlineRequest) -> List[Kline]:
+        request_query = f"get_latest_klines.request: {request.model_dump()}"
+        # print(request_query)
+        # print(request.end_time - request.start_time)
+        self.logger.info(request_query)
+        active_symbols = self.processor.get_active_symbols(request.symbol)
+        if len(active_symbols) == 0:
+            return []  # TODO: return validation Error
+
+        start_time, end_time = self.parse_time(
+            request.interval,
+            (
+                datetime.fromtimestamp(request.start_time)
+                if request.start_time is not None
+                else None
+            ),
+            (
+                datetime.fromtimestamp(request.end_time)
+                if request.start_time is not None
+                else None
+            ),
+            request.limit,
+        )
+        kline_data = await self.processor.get_historic_data(
+            symbol=request.symbol,
+            time_frame=TimeFrame(request.interval).value,
+            start=start_time,
+            end=end_time,
+        )
+        if kline_data is None:
+            return []
+
+        return kline_data
+
+    async def get_kline_data(self, symbol: str, interval: TimeFrame) -> KlineEvent:
         request_query = f"symbol: {symbol} | interval: {interval}"
         self.logger.info(request_query)
 
@@ -80,13 +130,13 @@ class KlineService:
         # _data: Union[BarDataEvent, None] = self.processor.get_data(symbol, DataMode.BAR)
         _data: Union[BarDataEvent, None] = self.processor.current_on_bar_data
         if _data is None:
-            return WsKlineEvent(symbol=symbol)
+            return KlineEvent(symbol=symbol)
 
-        kline_data = WsKlineEvent(
+        kline_data = KlineEvent(
             event=_data.event,
             time=date_to_timestamp(_data.time),
             symbol=symbol,
-            kline=WsKline(
+            kline=Kline(
                 start_time=None,
                 end_time=None,
                 symbol=_data.symbol,
