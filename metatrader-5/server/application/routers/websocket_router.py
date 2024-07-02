@@ -14,10 +14,10 @@ ws_router = APIRouter(tags=["Websocket"])
 
 
 class WebSocketRouter:
-    def __init__(self, logger: AppLogger, processor: MetaTraderDataProcessor):
-        self.logger = logger
+    def __init__(self, processor: MetaTraderDataProcessor):
+        self.logger = AppLogger(name=__class__.__name__)
         self.processor = processor
-        self.kline_service = KlineService(logger, processor)
+        self.kline_service = KlineService(processor)
         self.connected_clients: Set[WebSocket] = set()
 
         # Add routes
@@ -93,10 +93,8 @@ class WebSocketRouter:
             await websocket.close()
 
 
-def get_websocket_router(
-    logger: AppLogger, processor: MetaTraderDataProcessor
-) -> APIRouter:
-    WebSocketRouter(logger, processor)
+def get_websocket_router(processor: MetaTraderDataProcessor) -> APIRouter:
+    WebSocketRouter(processor)
     return ws_router
 
 

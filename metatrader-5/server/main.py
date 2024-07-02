@@ -5,12 +5,12 @@ from application.middlewares import LoggingMiddleware
 from application.config.config import Settings
 from application.lib.processor import MetaTraderDataProcessor
 
-logger = AppLogger()
+logger = AppLogger(name=__name__)
 settings = Settings()
 
 try:
     logger.info(f"Settings: {settings.model_dump()}")
-    processor = MetaTraderDataProcessor(logger, settings.metatrader_files_dir)
+    processor = MetaTraderDataProcessor(settings.metatrader_files_dir)
 except Exception as e:
     raise ValueError("An error occurred while connecting to MetaTrader: ", e) from e
 
@@ -23,10 +23,10 @@ app.add_middleware(LoggingMiddleware)
 
 # add the router to the app
 # Add the REST router to the FastAPI app
-app.include_router(get_rest_router(logger, processor), prefix="/api")
+app.include_router(get_rest_router(processor), prefix="/api")
 
 # Add the WebSocket router to the FastAPI app
-app.include_router(get_websocket_router(logger, processor), prefix="")
+app.include_router(get_websocket_router(processor), prefix="")
 
 #
 # if __name__ == "__main__":
