@@ -4,7 +4,7 @@ from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from application.config.logger import AppLogger
 
-logger = AppLogger()
+logger = AppLogger(name=__name__)
 
 
 class LoggingMiddleware(BaseHTTPMiddleware):
