@@ -1,0 +1,14 @@
+.env
+
+# Python
+__pycache__
+
+# Misc.
+**/tmp/*
+.venv
+screenshot.png
+encoded_file.txt
+decoded_file.txt
+output.log
+
+docker-compose.yml
