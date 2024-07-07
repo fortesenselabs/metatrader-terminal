@@ -42,13 +42,16 @@ class ExchangeInfoService:
         rateLimits = []  # Add rate limits if available
         exchangeFilters = []  # Add exchange filters if available
 
-        symbols_data = [
-            Symbol(
-                symbol="Step Index",
+        active_symbols = self.processor.get_active_symbols()
+
+        symbols = []
+        for active_symbol in active_symbols:
+            symbol = Symbol(
+                symbol=active_symbol.symbol,
                 status="TRADING",
-                baseAsset="Step Index",
+                baseAsset=active_symbol.symbol,
                 baseAssetPrecision=8,
-                quoteAsset="USD",
+                quoteAsset=active_symbol.currency_base,
                 quoteAssetPrecision=8,
                 baseCommissionPrecision=8,
                 quoteCommissionPrecision=8,
@@ -67,7 +70,34 @@ class ExchangeInfoService:
                 defaultSelfTradePreventionMode="NONE",
                 allowedSelfTradePreventionModes=["NONE"],
             )
-        ]
+            symbols.append(symbol)
+
+        # symbols_data = [
+        #     Symbol(
+        #         symbol="Step Index",
+        #         status="TRADING",
+        #         baseAsset="Step Index",
+        #         baseAssetPrecision=8,
+        #         quoteAsset="USD",
+        #         quoteAssetPrecision=8,
+        #         baseCommissionPrecision=8,
+        #         quoteCommissionPrecision=8,
+        #         orderTypes=OrderType.export_all(),
+        #         icebergAllowed=True,
+        #         ocoAllowed=True,
+        #         otoAllowed=True,
+        #         quoteOrderQtyMarketAllowed=True,
+        #         allowTrailingStop=False,
+        #         cancelReplaceAllowed=False,
+        #         isSpotTradingAllowed=True,
+        #         isMarginTradingAllowed=True,
+        #         filters=[],
+        #         permissions=Permission.export_all(),
+        #         permissionSets=[Permission.export_all()],
+        #         defaultSelfTradePreventionMode="NONE",
+        #         allowedSelfTradePreventionModes=["NONE"],
+        #     )
+        # ]
         sors_data = [{"baseAsset": "Step Index", "symbols": ["Step Index"]}]
 
         return ExchangeInfoResponse(
@@ -75,6 +105,6 @@ class ExchangeInfoService:
             server_time=serverTime,
             rate_limits=rateLimits,
             exchange_filters=exchangeFilters,
-            symbols=symbols_data,
+            symbols=symbols,
             sors=sors_data,
         )

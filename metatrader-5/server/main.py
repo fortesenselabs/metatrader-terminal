@@ -34,3 +34,4 @@ app.include_router(get_websocket_router(processor), prefix="")
 #     uvicorn.run(app, host="0.0.0.0", port=8000)
 #
 # fastapi dev main.py
+# Convert to pub-sub with nats 
