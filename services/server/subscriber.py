@@ -35,7 +35,7 @@ async def main():
     # Subscribe to specific events
     # await pubsub.subscribe(Events.Kline, main_handler)
     # await pubsub.subscribe(Events.Order, main_handler)
-    await socketio_client_instance.subscribe(Events.Order, main_handler)
+    await socketio_client_instance.subscribe(Events.CreateOrder, main_handler)
 
     # Run indefinitely or handle shutdown gracefully
     try:
