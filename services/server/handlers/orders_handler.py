@@ -1,7 +1,15 @@
 import asyncio
-from models import DWXClientParams, Events
+from typing import Dict, Optional
+from models import (
+    DWXClientParams,
+    Events,
+    OrderResponse,
+    CreateOrderRequest,
+    MTOrderType,
+    SideType,
+)
 from internal import SocketIOServerClient
-from utils import Logger
+from utils import Logger, date_to_timestamp
 from .base_handler import BaseHandler
 
 
@@ -34,39 +42,45 @@ class OrderHandler(BaseHandler):
         super().__init__(dwx_client_params, pubsub_instance)
         self.logger = Logger(name=__class__.__name__)
 
+    async def _handle_create_order_event(self, latest_order):
+        try:
+            if latest_order["event_type"] == "Order:Created":
+                new_order = await self.create_order(
+                    is_order_executed=True, mt_executed_order=latest_order
+                )
+                self.logger.info(
+                    f"new_order.model_dump_json(): {new_order.model_dump_json()}"
+                )
+                await self.publish_to_subscriber(
+                    Events.CreateOrder, new_order.model_dump_json()
+                )
+        except KeyError:
+            pass
+
     def on_order_event(self):
         """
-        Handle incoming order events.
+        Handle outgoing/incoming order events.
 
         This method receives order event data and performs actions based on the event type.
         """
-        # Implement logic to handle specific order events based on event_data
         self.logger.info(
             f"on_order_event. open_orders: {len(self.dwx_client.open_orders)} open orders"
         )
-        # publish to nats
+
         payload = {
             "open_orders_len": len(self.dwx_client.open_orders),
             "open_orders": self.dwx_client.open_orders,
         }
 
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        loop.run_until_complete(self.publish_to_subscriber(Events.Order, payload))
-        loop.close()
+        if len(self.dwx_client.open_orders) > 0:
+            latest_order = list(self.dwx_client.open_orders.values())[-1]
+            self.logger.info(f"latest_order: {latest_order}")
 
-        # try:
-        #     # Get the current event loop or create a new one if it doesn't exist
-        #     loop = asyncio.get_event_loop()
-        # except RuntimeError:
-        #     # If there is no current event loop, create a new one
-        #     loop = asyncio.new_event_loop()
-        #     asyncio.set_event_loop(loop)
+            async def main():
+                await self._handle_create_order_event(latest_order)
+                await self.publish_to_subscriber(Events.Order, payload)
 
-        # # Run the coroutine in the event loop
-        # loop.call_soon_threadsafe(
-        #     asyncio.create_task, self.publish_to_subscriber(Events.Order, payload)
-        # )
+            asyncio.run(main())
 
     async def publish_to_subscriber(self, event_type, payload):
         await self.pubsub.publish(event_type, payload)
@@ -91,63 +105,53 @@ class OrderHandler(BaseHandler):
         fetching open orders.
 
         Raises:
-            NotImplementedError: This method is intended to be overridden.
+            NotImplementedError: This method is intended to be overridden by a subclass.
         """
         raise NotImplementedError("get_open_orders must be implemented by a subclass")
 
-    # async def create_order(
-    #     self, order_request: CreateOrderRequest, is_test: bool
-    # ) -> OrderResponse:
-    #     """
-    #     Creates a new order.
+    async def create_order(
+        self,
+        order_request: Optional[CreateOrderRequest] = None,
+        is_order_executed: bool = False,
+        mt_executed_order: Optional[Dict] = None,
+    ) -> OrderResponse:
+        """
+        Creates a new order.
 
-    #     Args:
-    #         order_request (CreateOrderRequest): The request object containing order details.
-    #         is_test (bool): Flag indicating if the order is a test order.
+        Args:
+            order_request (CreateOrderRequest): The request object containing order details.
 
-    #     Returns:
-    #         OrderResponse: The response object containing details of the created order.
-    #     """
-    #     # TODO: Implement test order functionality
-    #     if is_test:
-    #         return
+        Returns:
+            OrderResponse: The response object containing details of the created order.
+        """
 
-    #     mt_order = self.processor.open_order(
-    #         symbol=order_request.symbol,
-    #         order_type=MTOrderType.get_mt_order_type(
-    #             order_request.side, order_request.type
-    #         ),
-    #         price=float(order_request.price) or 0,
-    #         lots=float(order_request.quantity) or 0,
-    #         stop_loss=float(order_request.stop_loss_price) or 0,
-    #         take_profit=float(order_request.take_profit_price) or 0,
-    #     )
+        if is_order_executed:
+            response = {
+                "order_id": mt_executed_order["order_id"],
+                "symbol": mt_executed_order["symbol"],
+                "time": date_to_timestamp(mt_executed_order["open_time"]),
+                "price": str(mt_executed_order["open_price"]),
+                "executed_qty": str(mt_executed_order["lots"]),
+                # "time_in_force": mt_executed_order["time_in_force"],
+                # "type": "MARKET",
+                "side": SideType.from_string(str(mt_executed_order["type"]).upper()),
+                # "stop_loss": mt_executed_order["SL"],
+                # "take_profit": mt_executed_order["TP"],
+            }
 
-    #     if mt_order is None:
-    #         response = {
-    #             "symbol": order_request.symbol,
-    #             "status": MTOrderStatus.NONE,
-    #             "type": order_request.type,
-    #             "side": order_request.side,
-    #         }
-    #     else:
-    #         response = {
-    #             "order_id": mt_order.ticket_id,
-    #             "symbol": mt_order.symbol,
-    #             "status": mt_order.status.value,
-    #             "price": str(mt_order.price),
-    #             "orig_qty": (
-    #                 str(order_request.quantity)
-    #                 if order_request.quantity is not None
-    #                 else "0"
-    #             ),
-    #             "executed_qty": str(mt_order.lots),
-    #             "time_in_force": mt_order.time_in_force,
-    #             "type": order_request.type,
-    #             "side": order_request.side,
-    #         }
+            return OrderResponse(**response)
 
-    #     return OrderResponse(**response)
+        if order_request is not None:
+            self.dwx_client.open_order(
+                symbol=order_request.symbol,
+                order_type=MTOrderType.get_mt_order_type(
+                    order_request.side, order_request.type
+                ),
+                price=float(order_request.price) or 0,
+                lots=float(order_request.quantity) or 0,
+                stop_loss=float(order_request.stop_loss_price) or 0,
+                take_profit=float(order_request.take_profit_price) or 0,
+            )
 
     # async def close_order(self, order_request: CancelOrderRequest) -> OrderResponse:
     #     """
