@@ -38,11 +38,11 @@ def date_to_timestamp(date_str: str) -> int:
     date_formats = [
         "%Y-%m-%d %H:%M:%S.%f",
         "%Y.%m.%d %H:%M",
+        "%Y.%m.%d %H:%M:%S",
         "%Y-%m-%d %H:%M:%S.%f%z",
         "%Y-%m-%d %H:%M:%S%z",
         "%Y-%m-%d %H:%M:%S",
         "%Y-%m-%d %H:%M",
-        "%Y.%m.%d %H:%M",
         "%Y/%m/%d %H:%M:%S.%f%z",
         "%Y/%m/%d %H:%M:%S%z",
         "%Y/%m/%d %H:%M:%S",
