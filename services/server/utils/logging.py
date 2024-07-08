@@ -36,7 +36,7 @@ class Logger(logging.Logger):
 
         # Colored formatter for console logging
         self.log_formatter = ColoredFormatter(
-            "[TradeFlow] %(process)d - %(asctime)s  %(log_color)s [%(levelname)s] %(name)s: %(message)s",
+            "[MetaTrader Terminal Server] %(process)d - %(asctime)s  %(log_color)s [%(levelname)s] %(name)s: %(message)s",
             datefmt="%Y-%m-%d, %I:%M:%S %p",
             reset=True,
             log_colors={
