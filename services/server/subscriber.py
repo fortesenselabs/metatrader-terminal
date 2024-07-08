@@ -2,7 +2,7 @@ import asyncio
 from models import Events
 from settings import Settings
 from utils import Logger
-from internal import PubSub  # , Streams, StrategyMap
+from internal import PubSub, SocketIOServerClient  # , Streams, StrategyMap
 
 
 logger = Logger(name=__name__)
@@ -10,23 +10,13 @@ settings = Settings()
 
 
 async def main():
-    url = "{user}:{password}@{url}".format(
-        user=settings.NATS_USER, password=settings.NATS_PASS, url=settings.NATS_URL
-    )
+    url = "http://localhost:8000"
 
-    pubsub_client = await PubSub.connect(url)
-    if not pubsub_client.instance.is_connected:
-        logger.error(f"Error connecting to nats server at {url}")
-        return
+    socketio_client_instance = await SocketIOServerClient.connect_client(url)
 
     logger.info(
-        f"Connected to nats server at {pubsub_client.instance.connected_url.netloc}"
+        f"Connected to Server at {url}: {socketio_client_instance.instance.connected}"
     )
-
-    # hashmap = StrategyMap()
-
-    pubsub = PubSub(pubsub_client.instance)
-    # await pubsub.jetstream(Streams.DataFrame)
 
     async def main_handler(data):
         logger.info(f"Data received: {data}")
@@ -44,19 +34,14 @@ async def main():
 
     # Subscribe to specific events
     # await pubsub.subscribe(Events.Kline, main_handler)
-    await pubsub.subscribe(Events.Order, main_handler)
-
-    # Example: Publish data to an event
-    # payload = {"event_type": Events.DataFrame, "data": {...}}
-    # await pubsub.publish(Events.DataFrame, payload)
+    # await pubsub.subscribe(Events.Order, main_handler)
+    await socketio_client_instance.subscribe(Events.Order, main_handler)
 
     # Run indefinitely or handle shutdown gracefully
-    # try:
-    #     await asyncio.Event().wait()  # Wait forever unless interrupted
-    # except KeyboardInterrupt:
-    #     logger.info("Shutting down...")
-    # finally:
-    #     await pubsub_client.instance.close()
+    try:
+        await asyncio.Event().wait()  # Wait forever unless interrupted
+    except KeyboardInterrupt:
+        logger.info("Shutting down...")
 
 
 if __name__ == "__main__":

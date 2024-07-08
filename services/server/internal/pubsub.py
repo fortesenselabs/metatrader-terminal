@@ -42,6 +42,15 @@ class PubSub:
         except (ErrConnectionClosed, ErrTimeout) as e:
             self.log.error(f"NATS connection error: {e}")
 
+    async def request(self, subject, payload, timeout=1):
+        try:
+            self.log.info(f"Sending request to subject: {subject}")
+            data = json.dumps(payload).encode("utf-8")
+            response = await self.instance.request(subject, data, timeout=timeout)
+            return json.loads(response.data.decode())
+        except (ErrConnectionClosed, ErrTimeout) as e:
+            self.log.error(f"NATS connection error: {e}")
+
     async def jetstream(self, config):
         try:
             js = self.instance.jetstream()

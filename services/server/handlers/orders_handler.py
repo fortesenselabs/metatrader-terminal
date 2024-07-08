@@ -1,6 +1,6 @@
 import asyncio
-from nats.aio.client import Client as NATS
 from models import DWXClientParams, Events
+from internal import SocketIOServerClient
 from utils import Logger
 from .base_handler import BaseHandler
 
@@ -19,7 +19,9 @@ class OrderHandler(BaseHandler):
     """
 
     def __init__(
-        self, dwx_client_params: DWXClientParams, pubsub_client_instance: NATS
+        self,
+        dwx_client_params: DWXClientParams,
+        pubsub_instance: SocketIOServerClient,
     ):
         """
         Initializes the OrderHandler with DWXClient parameters and a Pub/Sub client.
@@ -27,9 +29,9 @@ class OrderHandler(BaseHandler):
         Args:
             dwx_client_params (DWXClientParams): An object containing parameters required to
                                                initialize a DWXClient instance.
-            pubsub_client_instance (nats.aio.client.Client): The NATS client for Pub/Sub messaging.
+            pubsub_instance (SocketIOServerClient): The client for Pub/Sub messaging.
         """
-        super().__init__(dwx_client_params, pubsub_client_instance)
+        super().__init__(dwx_client_params, pubsub_instance)
         self.logger = Logger(name=__class__.__name__)
 
     def on_order_event(self):
@@ -43,7 +45,10 @@ class OrderHandler(BaseHandler):
             f"on_order_event. open_orders: {len(self.dwx_client.open_orders)} open orders"
         )
         # publish to nats
-        payload = {"open_orders_len": len(self.dwx_client.open_orders)}
+        payload = {
+            "open_orders_len": len(self.dwx_client.open_orders),
+            "open_orders": self.dwx_client.open_orders,
+        }
 
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)

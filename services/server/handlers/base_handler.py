@@ -1,8 +1,7 @@
 from abc import ABC
 import time
 from typing import Dict
-from nats.aio.client import Client as NATS
-from internal import DWXClient, PubSub
+from internal import DWXClient, SocketIOServerClient
 from models import DWXClientParams
 from utils import Logger
 
@@ -17,18 +16,18 @@ class BaseHandler(ABC):
     Attributes:
         dwx_client (DWXClient): The client to connect to the trading system.
         logger (Logger): Logger for logging information and errors.
-        pubsub (PubSub): Pub/Sub client for message subscriptions.
+        pubsub (SocketIOServerClient): Pub/Sub client for message subscriptions.
     """
 
     def __init__(
-        self, dwx_client_params: DWXClientParams, pubsub_client_instance: NATS
+        self, dwx_client_params: DWXClientParams, pubsub_instance: SocketIOServerClient
     ):
         """
         Initializes the BaseHandler with DWXClient parameters and a Pub/Sub client.
 
         Args:
             dwx_client_params (DWXClientParams): Parameters required to initialize DWXClient.
-            pubsub_client_instance (nats.aio.client.Client): The NATS client for Pub/Sub messaging.
+            pubsub_instance (SocketIOServerClient): The client for Pub/Sub messaging.
         """
         self.logger = Logger(name=__class__.__name__)
 
@@ -48,7 +47,7 @@ class BaseHandler(ABC):
         time.sleep(1)
         self.dwx_client.start()
 
-        self.pubsub = PubSub(pubsub_client_instance)
+        self.pubsub = pubsub_instance
 
     def on_tick(self, symbol, bid, ask):
         """
