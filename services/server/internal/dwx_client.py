@@ -207,44 +207,67 @@ class DWXClient:
     """
 
     def check_open_orders(self):
-
         while self.ACTIVE:
-
             sleep(self.sleep_delay)
-
             if not self.START:
                 continue
 
             text = self.try_read_file(self.path_orders)
-
-            if len(text.strip()) == 0 or text == self._last_open_orders_str:
+            if not text.strip() or text == self._last_open_orders_str:
                 continue
 
             self._last_open_orders_str = text
             data = json.loads(text)
-
             new_event = False
-            for order_id, order in self.open_orders.items():
-                # also triggers if a pending order got filled?
-                if order_id not in data["orders"].keys():
-                    new_event = True
-                    if self.verbose:
-                        print("Order removed: ", order)
 
-            for order_id, order in data["orders"].items():
-                if order_id not in self.open_orders:
-                    new_event = True
-                    if self.verbose:
-                        print("New order: ", order)
+            # Set to keep track of current orders
+            current_order_ids = set(data["orders"].keys())
+            previous_order_ids = set(self.open_orders.keys())
 
+            # Orders removed
+            removed_order_ids = previous_order_ids - current_order_ids
+            for order_id in removed_order_ids:
+                order = self.open_orders[order_id]
+                order["order_id"] = order_id
+                order["event_type"] = "Order:Removed"
+                order["open_time_dt"] = datetime.strptime(
+                    order["open_time"], "%Y.%m.%d %H:%M:%S"
+                )
+                new_event = True
+                if self.verbose:
+                    print("Order removed: ", order)
+
+            # Orders added
+            added_order_ids = current_order_ids - previous_order_ids
+            for order_id in added_order_ids:
+                order = data["orders"][order_id]
+                order["order_id"] = order_id
+                order["event_type"] = "Order:Created"
+                new_event = True
+                if self.verbose:
+                    print("New order: ", order)
+
+            # Sorting orders by open_time
+            for order in data["orders"].values():
+                order["open_time_dt"] = datetime.strptime(
+                    order["open_time"], "%Y.%m.%d %H:%M:%S"
+                )
+
+            sorted_open_orders = dict(
+                sorted(data["orders"].items(), key=lambda item: item[1]["open_time_dt"])
+            )
+
+            for order in sorted_open_orders.values():
+                del order["open_time_dt"]
+
+            self.open_orders = sorted_open_orders
             self.account_info = data["account_info"]
-            self.open_orders = data["orders"]
 
             if self.load_orders_from_file:
                 with open(self.path_orders_stored, "w") as f:
                     f.write(json.dumps(data))
 
-            if self.event_handler is not None and new_event:
+            if self.event_handler and new_event:
                 self.event_handler.on_order_event()
 
     """Regularly checks the file for messages and triggers
