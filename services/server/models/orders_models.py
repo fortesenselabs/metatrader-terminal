@@ -3,7 +3,7 @@
 #
 
 
-from typing import Optional, List
+from typing import Optional, List, Union
 from enum import Enum
 from pydantic import BaseModel
 
@@ -11,6 +11,13 @@ from pydantic import BaseModel
 class SideType(Enum):
     BUY = "BUY"
     SELL = "SELL"
+
+    @classmethod
+    def from_string(cls, string) -> Union["SideType", None]:
+        try:
+            return cls[string]
+        except KeyError:
+            return None
 
     @classmethod
     def export_all(cls) -> List[str]:

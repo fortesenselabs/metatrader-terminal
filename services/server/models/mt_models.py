@@ -1,7 +1,7 @@
 #
 # MetaTraderDataProcessor Types
 #
-from typing import Optional, List
+from typing import Optional, List, Tuple, Union
 from enum import Enum
 from pydantic import BaseModel
 from .orders_models import SideType, OrderType, TimeInForceType
@@ -76,6 +76,13 @@ class MTOrderType(Enum):
     SELL_STOP = "sellstop"
 
     @classmethod
+    def from_string(cls, string) -> Union["MTOrderType", None]:
+        try:
+            return cls[string]
+        except KeyError:
+            return None
+
+    @classmethod
     def get_mt_order_type(
         cls, side_type: SideType, order_type: OrderType
     ) -> Optional["MTOrderType"]:
@@ -88,6 +95,20 @@ class MTOrderType(Enum):
             (SideType.SELL, OrderType.STOP): cls.SELL_STOP,
         }
         return mapping.get((side_type, order_type))
+
+    @classmethod
+    def get_side_and_order_type(
+        cls, mt_order_type: "MTOrderType"
+    ) -> Optional[Tuple[SideType, OrderType]]:
+        reverse_mapping = {
+            cls.BUY: (SideType.BUY, OrderType.MARKET),
+            cls.SELL: (SideType.SELL, OrderType.MARKET),
+            cls.BUY_LIMIT: (SideType.BUY, OrderType.LIMIT),
+            cls.SELL_LIMIT: (SideType.SELL, OrderType.LIMIT),
+            cls.BUY_STOP: (SideType.BUY, OrderType.STOP),
+            cls.SELL_STOP: (SideType.SELL, OrderType.STOP),
+        }
+        return reverse_mapping.get(mt_order_type)
 
 
 class MTOrderStatus(Enum):
