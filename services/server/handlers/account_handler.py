@@ -1,66 +1,49 @@
-from typing import Optional, List
-from application.config.logger import AppLogger
-from application.lib.processor import MetaTraderDataProcessor
-from application.models.account_info_models import (
+from typing import List, Dict, Optional
+from models import (
+    DWXClientParams,
     AccountInfoResponse,
     AccountType,
     Permission,
-)
-from application.utils import get_server_time
-from application.models.orders_models import OrderType
-from application.models.symbol_models import (
-    Symbol,
-    AvailableSymbolsInfoResponse,
     SymbolBalance,
 )
+from internal import SocketIOServerClient
+from utils import Logger, get_server_time
+from .base_handler import BaseHandler
+from .exchange_info_handler import ExchangeInfoHandler
 
 
-class AccountService:
+class AccountHandler(BaseHandler):
+    """
+    Handler class for managing account-related operations.
+
+    Args:
+        dwx_client_params (DWXClientParams): Parameters for DWX client.
+        pubsub_instance (SocketIOServerClient): Instance of the Socket.IO server client.
+        exchange_info (ExchangeInfoHandler): Handler for exchange information.
+    """
+
     def __init__(
         self,
-        processor: MetaTraderDataProcessor,
+        dwx_client_params: DWXClientParams,
+        pubsub_instance: SocketIOServerClient,
+        exchange_info: ExchangeInfoHandler,
     ):
-        self.logger = AppLogger(name=__class__.__name__)
-        self.processor = processor
-        self.account_info: Optional[AccountInfoResponse] = None
+        super().__init__(dwx_client_params, pubsub_instance)
+        self.logger = Logger(name=__class__.__name__)
+        self.account_info: Optional[Dict] = None
+        self.exchange_info: Optional[ExchangeInfoHandler] = exchange_info
 
-    async def get_all_symbols(self) -> AvailableSymbolsInfoResponse:
-        active_symbols = self.processor.get_active_symbols()
+    def on_historic_trades(self):
+        self.logger.info(f"historic_trades: {len(self.dwx_client.historic_trades)}")
+        self.historic_trades = self.dwx_client.historic_trades
 
-        symbols = []
-        for active_symbol in active_symbols:
-            symbol = Symbol(
-                symbol=active_symbol.symbol,
-                status="TRADING",
-                baseAsset=active_symbol.symbol,
-                baseAssetPrecision=8,
-                quoteAsset=active_symbol.currency_base,
-                quoteAssetPrecision=8,
-                baseCommissionPrecision=8,
-                quoteCommissionPrecision=8,
-                orderTypes=OrderType.export_all(),
-                icebergAllowed=True,
-                ocoAllowed=True,
-                otoAllowed=True,
-                quoteOrderQtyMarketAllowed=True,
-                allowTrailingStop=False,
-                cancelReplaceAllowed=False,
-                isSpotTradingAllowed=True,
-                isMarginTradingAllowed=True,
-                filters=[],
-                permissions=Permission.export_all(),
-                permissionSets=[Permission.export_all()],
-                defaultSelfTradePreventionMode="NONE",
-                allowedSelfTradePreventionModes=["NONE"],
-            )
-            symbols.append(symbol)
+    async def get_balances(self) -> List[SymbolBalance]:
+        """
+        Retrieves the balance information for the account.
 
-        return AvailableSymbolsInfoResponse(symbols=symbols)
-
-    async def get_symbol_detail(self):
-        return
-
-    async def get_all_balances(self) -> List[SymbolBalance]:
+        Returns:
+            List[SymbolBalance]: A list of balances for different symbols.
+        """
         balances = [
             {
                 "symbol": self.account_info["currency"],
@@ -68,12 +51,27 @@ class AccountService:
                 "locked": f"{self.account_info['equity'] - self.account_info['free_margin']}",  # Calculate Locked balance
             },
         ]
-        balances.extend(self.processor.get_active_symbol_balances())
+
+        active_symbols = await self.exchange_info.get_active_symbols()
+        for symbol_data in active_symbols:
+            balance = {
+                "symbol": symbol_data.symbol,
+                "free": "0",
+                "locked": "0",
+            }
+            balances.append(balance)
 
         return balances
 
-    async def get_account_info(self) -> AccountInfoResponse:
-        self.account_info = self.processor.get_account_info()
+    async def get_account(self) -> AccountInfoResponse:
+        """
+        Retrieves account information and constructs an AccountInfoResponse object.
+
+        Returns:
+            AccountInfoResponse: An object containing account information.
+        """
+        self.account_info = self.dwx_client.account_info
+
         self.account_info["uid"] = self.account_info["number"]
         self.account_info["can_trade"] = True
         self.account_info["can_withdraw"] = False
@@ -85,12 +83,18 @@ class AccountService:
         self.account_info["account_type"] = AccountType.HEDGING
         self.account_info["permissions"] = Permission.export_all()
 
-        self.account_info["balances"] = await self.get_all_balances()
+        self.account_info["balances"] = await self.get_balances()
 
         return AccountInfoResponse(**self.account_info)
 
     async def get_trades(self):
+        """
+        Placeholder method for retrieving trades.
+        """
         return
 
     async def get_historical_trades(self):
+        """
+        Placeholder method for retrieving historical trades.
+        """
         return
