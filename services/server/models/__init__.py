@@ -2,7 +2,7 @@ from typing import Optional
 from pydantic import BaseModel
 from .enum_types import *
 from .mt_models import *
-from .account_info_models import *
+from .account_models import *
 from .exchange_info_models import *
 from .kline_models import *
 from .orders_models import *
