@@ -119,8 +119,9 @@ class BaseHandler(ABC):
             message (dict): The message data.
         """
         if message["type"] == "ERROR":
-            self.logger.info(
-                f"{message['type']} | {message['error_type']} | {message['description']}"
+            self.logger.error(
+                f"| {message['type']} | {message['error_type']} | {message['description']}"
             )
-        elif message["type"] == "INFO":
-            self.logger.info(f"{message['type']} | {message['message']}")
+
+        if message["type"] == "INFO":
+            self.logger.info(f"| {message['type']} | {message['message']}")
