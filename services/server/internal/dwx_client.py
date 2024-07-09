@@ -116,6 +116,7 @@ class DWXClient:
         self._last_symbols_data_str = ""
 
         self.open_orders = {}
+        self.closed_orders = []
         self.account_info = {}
         self.market_data = {}
         self.bar_data = {}
@@ -230,12 +231,14 @@ class DWXClient:
                 order = self.open_orders[order_id]
                 order["order_id"] = order_id
                 order["event_type"] = "Order:Removed"
-                order["open_time_dt"] = datetime.strptime(
-                    order["open_time"], "%Y.%m.%d %H:%M:%S"
-                )
+                # order["open_time_dt"] = datetime.strptime(
+                #     order["open_time"], "%Y.%m.%d %H:%M:%S"
+                # )
                 new_event = True
                 if self.verbose:
                     print("Order removed: ", order)
+
+                self.closed_orders.append(order)
 
             # Orders added
             added_order_ids = current_order_ids - previous_order_ids
@@ -243,16 +246,21 @@ class DWXClient:
                 order = data["orders"][order_id]
                 order["order_id"] = order_id
                 order["event_type"] = "Order:Created"
+                order["open_time_dt"] = datetime.strptime(
+                    order["open_time"], "%Y.%m.%d %H:%M:%S"
+                )
                 new_event = True
                 if self.verbose:
                     print("New order: ", order)
 
-            # Sorting orders by open_time
+            # Ensure all orders have the open_time_dt field
             for order in data["orders"].values():
-                order["open_time_dt"] = datetime.strptime(
-                    order["open_time"], "%Y.%m.%d %H:%M:%S"
-                )
+                if "open_time_dt" not in order:
+                    order["open_time_dt"] = datetime.strptime(
+                        order["open_time"], "%Y.%m.%d %H:%M:%S"
+                    )
 
+            # Sorting orders by open_time
             sorted_open_orders = dict(
                 sorted(data["orders"].items(), key=lambda item: item[1]["open_time_dt"])
             )
@@ -658,7 +666,7 @@ class DWXClient:
     """
     #
 
-    def close_order(self, ticket, lots=0):
+    def close_order(self, ticket: str, lots: float = 0):
 
         data = [ticket, lots]
         self.send_command("CLOSE_ORDER", ",".join(str(p) for p in data))
