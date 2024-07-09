@@ -1,15 +1,22 @@
 class Events:
-    Kline = "Event:Kline"
+    # Errors
     CriticalError = "Event:CriticalError"
-    DataFrame = "Event:DataFrame"
+
+    # Kline
+    KlineSubscribeTick = "Event:Kline:Subscribe:Tick"
+    KlineSubscribeBar = "Event:Kline:Subscribe:Bar"
+    KlineUnsubscribeTick = "Event:Kline:Unsubscribe:Tick"
+    KlineUnsubscribeBar = "Event:Kline:Unsubscribe:Bar"
+    KlineListSubscriptions = "Event:Kline:ListSubscriptions"
+    KlineHistorical = "Event:Kline:Historical"
 
     # Orders
-    Order = "Event:Order"
+    Order = "Event:Order:All"
     CreateOrder = "Event:Order:Create"
     CloseOrder = "Event:Order:Close"
 
+    # Account
+    Account = "Event:Account:All"
 
-class Signal:
-    BUY = "BUY"
-    SELL = "SELL"
-    NONE = "NONE"
+    # Exchange Info
+    ExchangeInfo = "Event:ExchangeInfo:All"
