@@ -1,12 +1,14 @@
 import asyncio
-from typing import Dict, Optional
+from typing import List, Dict, Optional
 from models import (
     DWXClientParams,
     Events,
     OrderResponse,
     CreateOrderRequest,
+    CancelOrderRequest,
     MTOrderType,
     SideType,
+    NewOrderEvent,
 )
 from internal import SocketIOServerClient
 from utils import Logger, date_to_timestamp
@@ -48,11 +50,20 @@ class OrderHandler(BaseHandler):
                 new_order = await self.create_order(
                     is_order_executed=True, mt_executed_order=latest_order
                 )
-                self.logger.info(
-                    f"new_order.model_dump_json(): {new_order.model_dump_json()}"
-                )
                 await self.publish_to_subscriber(
                     Events.CreateOrder, new_order.model_dump_json()
+                )
+        except KeyError:
+            pass
+
+    async def _handle_close_order_event(self, latest_order):
+        try:
+            if latest_order["event_type"] == "Order:Removed":
+                new_order = await self.close_order(
+                    is_order_executed=True, mt_executed_order=latest_order
+                )
+                await self.publish_to_subscriber(
+                    Events.CloseOrder, new_order.model_dump_json()
                 )
         except KeyError:
             pass
@@ -67,20 +78,31 @@ class OrderHandler(BaseHandler):
             f"on_order_event. open_orders: {len(self.dwx_client.open_orders)} open orders"
         )
 
+        self.logger.info(
+            f"on_order_event. closed_orders: {len(self.dwx_client.closed_orders)} closed orders"
+        )
+
         payload = {
             "open_orders_len": len(self.dwx_client.open_orders),
+            "closed_orders_len": len(self.dwx_client.closed_orders),
             "open_orders": self.dwx_client.open_orders,
+            "closed_orders": self.dwx_client.closed_orders,
         }
 
-        if len(self.dwx_client.open_orders) > 0:
-            latest_order = list(self.dwx_client.open_orders.values())[-1]
-            self.logger.info(f"latest_order: {latest_order}")
-
-            async def main():
+        async def main():
+            if len(self.dwx_client.open_orders) > 0:
+                latest_order = list(self.dwx_client.open_orders.values())[-1]
+                self.logger.info(f"latest_opened_order: {latest_order}")
                 await self._handle_create_order_event(latest_order)
-                await self.publish_to_subscriber(Events.Order, payload)
 
-            asyncio.run(main())
+            if len(self.dwx_client.closed_orders) > 0:
+                latest_order = self.dwx_client.closed_orders[-1]
+                self.logger.info(f"latest_closed_order: {latest_order}")
+                await self._handle_close_order_event(latest_order)
+
+            await self.publish_to_subscriber(Events.Order, payload)
+
+        asyncio.run(main())
 
     async def publish_to_subscriber(self, event_type, payload):
         await self.pubsub.publish(event_type, payload)
@@ -127,7 +149,7 @@ class OrderHandler(BaseHandler):
 
         if is_order_executed:
             response = {
-                "order_id": mt_executed_order["order_id"],
+                "order_id": str(mt_executed_order["order_id"]),
                 "symbol": mt_executed_order["symbol"],
                 "time": date_to_timestamp(mt_executed_order["open_time"]),
                 "price": str(mt_executed_order["open_price"]),
@@ -146,72 +168,102 @@ class OrderHandler(BaseHandler):
                 symbol=order_request.symbol,
                 order_type=MTOrderType.get_mt_order_type(
                     order_request.side, order_request.type
-                ),
+                ).value,
                 price=float(order_request.price) or 0,
                 lots=float(order_request.quantity) or 0,
                 stop_loss=float(order_request.stop_loss_price) or 0,
                 take_profit=float(order_request.take_profit_price) or 0,
             )
 
-    # async def close_order(self, order_request: CancelOrderRequest) -> OrderResponse:
-    #     """
-    #     Closes an existing order.
+    async def close_order(
+        self,
+        order_request: Optional[CancelOrderRequest] = None,
+        is_order_executed: bool = False,
+        mt_executed_order: Optional[Dict] = None,
+    ) -> OrderResponse:
+        """
+        Closes an existing order.
 
-    #     Args:
-    #         order_request (CancelOrderRequest): The request object containing order details.
+        Args:
+            order_request (CancelOrderRequest): The request object containing order details.
 
-    #     Returns:
-    #         OrderResponse: The response object containing details of the closed order.
-    #     """
-    #     mt_order = self.processor.close_order(
-    #         ticket_id=order_request.order_id, symbol=order_request.symbol
-    #     )
+        Returns:
+            OrderResponse: The response object containing details of the closed order.
+        """
 
-    #     if mt_order is None:
-    #         return OrderResponse(
-    #             order_id=order_request.order_id, symbol=order_request.symbol
-    #         )
+        if is_order_executed:
+            response = {
+                "order_id": str(mt_executed_order["order_id"]),
+                "symbol": mt_executed_order["symbol"],
+                "time": date_to_timestamp(mt_executed_order["open_time"]),
+                "price": str(mt_executed_order["open_price"]),
+                "executed_qty": str(mt_executed_order["lots"]),
+                # "time_in_force": mt_executed_order["time_in_force"],
+                # "type": "MARKET",
+                "side": SideType.from_string(str(mt_executed_order["type"]).upper()),
+                # "stop_loss": mt_executed_order["SL"],
+                # "take_profit": mt_executed_order["TP"],
+            }
 
-    #     _order = mt_order[0]
-    #     response = OrderResponse(
-    #         order_id=_order.ticket_id,
-    #         symbol=_order.symbol,
-    #         # Uncomment and set appropriate fields if required
-    #         # type=_order.type,
-    #         transact_time=_order.open_time,
-    #         executed_qty=_order.lots,
-    #         orig_qty=_order.lots,
-    #         price=_order.open_price,
-    #     )
-    #     return response
+            return OrderResponse(**response)
 
-    # async def close_open_orders(self, symbol: str) -> OpenOrdersResponse:
-    #     """
-    #     Closes all open orders for a given symbol.
+        if order_request.close_all:
+            self.dwx_client.close_all_orders()
+        elif order_request.symbol is not None:
+            self.dwx_client.close_orders_by_symbol(symbol=order_request.symbol)
+        elif order_request.magic_id is not None:
+            self.dwx_client.close_orders_by_magic(magic=order_request.magic_id)
+        elif order_request.order_id is not None:
+            self.dwx_client.close_order(
+                ticket=order_request.order_id, lots=order_request.quantity
+            )
+        else:
+            self.dwx_client.close_all_orders()
 
-    #     Args:
-    #         symbol (str): The symbol for which to close all open orders.
+    async def get_open_orders(self) -> List[OrderResponse]:
+        open_orders = self.dwx_client.open_orders
+        for order_id, order in open_orders.items():
+            pass
 
-    #     Returns:
-    #         OpenOrdersResponse: The response object containing details of closed orders.
-    #     """
-    #     mt_orders = self.processor.close_order(ticket_id="", symbol=symbol)
+        return open_orders
 
-    #     if mt_orders is None:
-    #         return OpenOrdersResponse()
+    async def modify_order(self):
+        # modify_order
+        # self.dwx_client.modify_order()
+        return
 
-    #     _orders = []
-    #     for mt_order in mt_orders:
-    #         _order = OrderResponse(
-    #             order_id=mt_order.ticket_id,
-    #             symbol=mt_order.symbol,
-    #             # Uncomment and set appropriate fields if required
-    #             # type=mt_order.type,
-    #             transact_time=mt_order.open_time,
-    #             executed_qty=mt_order.lots,
-    #             orig_qty=mt_order.lots,
-    #             price=mt_order.open_price,
-    #         )
-    #         _orders.append(_order)
+    async def search_orders_by_magic(self, magic_id: int) -> List[NewOrderEvent]:
+        """
+        Search for orders with a specific magic id.
 
-    #     return OpenOrdersResponse(orders=_orders)
+        Args:
+            magic_id (int): The magic id to search for.
+
+        Returns:
+            List[NewOrderEvent]: A list of NewOrderEvent instances that match the magic id.
+        """
+        open_orders = self.dwx_client.open_orders
+
+        if open_orders:
+            matching_orders = [
+                NewOrderEvent(
+                    ticket_id=order_data["ticket_id"],
+                    magic=order_data["magic"],
+                    symbol=order_data["symbol"],
+                    lots=order_data["lots"],
+                    type=order_data["type"],
+                    open_price=order_data["open_price"],
+                    open_time=order_data["open_time"],
+                    sl=order_data["sl"],
+                    tp=order_data["tp"],
+                    pnl=order_data["pnl"],
+                    swap=order_data["swap"],
+                    comment=order_data["comment"],
+                )
+                for order_data in open_orders
+                if order_data["magic"] == magic_id
+            ]
+
+            return matching_orders
+
+        return []
