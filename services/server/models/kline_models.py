@@ -1,9 +1,10 @@
 from datetime import datetime, timezone
 from typing import List, Optional
 from pydantic import BaseModel, Field, model_validator
+
+from .enum_types import TimeFrame
 from .exchange_info_models import RateLimit
 from .symbol_models import SymbolMarketData
-from .enum_types import TimeFrame, WsRequestMethod
 
 
 class TickInfoResponse(BaseModel):
@@ -109,9 +110,3 @@ class KlineEvent(BaseModel):
     time: Optional[int] = None
     symbol: str
     kline: Optional[Kline] = None
-
-
-class WsRequest(BaseModel):
-    id: str
-    method: Optional[WsRequestMethod] = None
-    params: Optional[KlineRequest] = None

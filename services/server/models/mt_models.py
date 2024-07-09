@@ -3,7 +3,7 @@
 #
 from typing import Optional, List, Tuple, Union
 from enum import Enum
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from .orders_models import SideType, OrderType, TimeInForceType
 
 
@@ -26,45 +26,31 @@ class DWXClientParams(BaseModel):
     verbose: bool = True
 
 
-class BarDataEvent:
-    def __init__(
-        self,
-        symbol: str,
-        time_frame: str,
-        time: str,
-        open_price: float,
-        high: float,
-        low: float,
-        close_price: float,
-        tick_volume: Optional[float] = None,
-        is_final: Optional[bool] = True,
-    ):
-        self.event = "on_bar_data"
-        self.symbol = symbol
-        self.time_frame = time_frame
-        self.time = time
-        self.open = open_price
-        self.high = high
-        self.low = low
-        self.close = close_price
-        self.tick_volume = tick_volume
-        self.is_final = is_final
+class BarDataEvent(BaseModel):
+    event: str = "on_bar_data"
+    symbol: str
+    time_frame: str
+    time: str
+    open: float = Field(..., alias="open_price")
+    high: float
+    low: float
+    close: float = Field(..., alias="close_price")
+    tick_volume: Optional[float] = None
+    is_final: Optional[bool] = True
+
+    class Config:
+        populate_by_name = True
 
 
-class TickDataEvent:
-    def __init__(
-        self,
-        symbol: str,
-        time: Optional[str] = None,
-        bid: Optional[float] = None,
-        ask: Optional[float] = None,
-        event_type: Optional[str] = "on_tick",
-    ):
-        self.event = event_type
-        self.symbol = symbol
-        self.time = time
-        self.bid = bid
-        self.ask = ask
+class TickDataEvent(BaseModel):
+    event: str = "on_tick"
+    symbol: str
+    time: Optional[str] = None
+    bid: Optional[float] = None
+    ask: Optional[float] = None
+
+    class Config:
+        populate_by_name = True
 
 
 class MTOrderType(Enum):

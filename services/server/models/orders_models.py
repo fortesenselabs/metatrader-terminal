@@ -63,19 +63,22 @@ class CreateOrderRequest(BaseModel):
     side: SideType
     type: Optional[OrderType] = OrderType.MARKET
     time_in_force: Optional[TimeInForceType] = TimeInForceType.GTC
-    quantity: Optional[str] = None
-    price: Optional[str] = None
-    stop_loss_price: Optional[str] = None
-    take_profit_price: Optional[str] = None
+    quantity: Optional[str] = "0.1"
+    price: Optional[str] = "0"
+    stop_loss_price: Optional[str] = "0"
+    take_profit_price: Optional[str] = "0"
 
 
 class CancelOrderRequest(BaseModel):
-    symbol: str
-    order_id: Optional[int] = None
+    order_id: Optional[str] = None
+    symbol: Optional[str] = None
+    magic_id: Optional[int] = None
+    quantity: Optional[str] = "0.1"
+    close_all: bool = False
 
 
 class OrderResponse(BaseModel):
-    order_id: Optional[int] = None
+    order_id: Optional[str] = None
     symbol: str
     status: Optional[str] = None
     transact_time: Optional[int] = None

@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 from pydantic import BaseModel
 from .enum_types import Permission, TimeFrame, DataMode
 
@@ -36,8 +36,8 @@ class SymbolBalance(BaseModel):
 
 class SymbolMarketData(BaseModel):
     symbol: str
-    time_frame: TimeFrame
-    mode: DataMode
+    time_frame: Optional[TimeFrame] = TimeFrame.CURRENT
+    mode: Optional[DataMode] = DataMode.TICK
 
 
 class AvailableSymbolsInfoResponse(BaseModel):

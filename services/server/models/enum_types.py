@@ -139,14 +139,3 @@ class TimeFrame(Enum):
         }
 
         return TIMEFRAME_MAP.get(self, timedelta())
-
-
-class WsRequestMethod(Enum):
-    NONE = "NONE"
-    SUBSCRIBE = "SUBSCRIBE"
-    UNSUBSCRIBE = "UNSUBSCRIBE"
-    LIST_SUBSCRIPTIONS = "LIST_SUBSCRIPTIONS"
-
-    @classmethod
-    def export_all(cls) -> List[str]:
-        return [order_type.value for order_type in cls]
