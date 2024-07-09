@@ -78,18 +78,20 @@ class Kline(BaseModel):
 #         return self
 
 
-class KlineRequest(BaseModel):
+class HistoricalKlineRequest(BaseModel):
     symbol: str
-    interval: TimeFrame
+    time_frame: TimeFrame
     start_time: Optional[float] = None
     end_time: Optional[float] = None
     time_zone: Optional[str] = Field(default="0", description="Default: 0 (UTC)")
-    limit: Optional[int] = Field(default=10, le=500, description="Default 10; max 500")
+    limit: Optional[int] = Field(
+        default=300, le=1000, description="Default 300; max 1000"
+    )
 
     @model_validator(mode="after")
     def adjust_time(self):
-        self.interval = (
-            self.interval if self.interval != TimeFrame.CURRENT else TimeFrame.M1
+        self.time_frame = (
+            self.time_frame if self.time_frame != TimeFrame.CURRENT else TimeFrame.M1
         )
         return self
 

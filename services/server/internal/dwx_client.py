@@ -410,13 +410,15 @@ class DWXClient:
 
                 data = json.loads(text)
 
-                for st in data.keys():
+                for st in dict(data).keys():
                     self.historic_data[st] = data[st]
                     if self.event_handler is not None:
                         symbol, time_frame = st.split("_")
                         self.event_handler.on_historic_data(
                             symbol, time_frame, data[st]
                         )
+
+                    sleep(self.sleep_delay)
 
                 self.try_remove_file(self.path_historic_data)
 
