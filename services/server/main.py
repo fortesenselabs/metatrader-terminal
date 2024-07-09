@@ -1,10 +1,8 @@
-import json
 from aiohttp import web
-from models import DWXClientParams, Events, CreateOrderRequest
+from models import DWXClientParams
 from settings import Settings
 from utils import Logger
 from internal import SocketIOServerClient, RequestHandler
-from handlers import OrderHandler
 
 
 logger = Logger(name=__name__)
