@@ -11,13 +11,10 @@ from models import (
     TimeFrame,
     HistoricalKlineRequest,
 )
-from settings import Settings
-from utils import Logger
-from internal import SocketIOServerClient  # , Streams, StrategyMap
+from internal import Logger, SocketIOServerClient
 
 
 logger = Logger(name=__name__)
-settings = Settings()
 
 empty_request = "{}"
 open_orders: List[OrderResponse] = []
@@ -103,13 +100,13 @@ async def new_order(client_instance: SocketIOServerClient):
         quantity="1",
     )
 
-    for i in range(3):
+    for i in range(5):
         logger.info(f"Order {i}")
         await client_instance.publish(
             Events.CreateOrder, new_order_request.model_dump_json()
         )
 
-    await asyncio.sleep(7)  # wait for some time before closing orders
+    await asyncio.sleep(10)  # wait for some time before closing orders
     request = CancelOrderRequest(close_all=True)
     await client_instance.publish(Events.CloseOrder, request.model_dump_json())
 
@@ -134,14 +131,14 @@ async def main():
 
     # Subscribe to specific events
 
-    await get_account_and_exchange_info(client_instance)
+    # await get_account_and_exchange_info(client_instance)
 
     # await new_order(client_instance)
-    await get_open_orders(client_instance)
+    # await get_open_orders(client_instance)
 
     # await subscribe_to_kline_tick(client_instance)
     # await subscribe_to_kline_bar(client_instance)
-    # await subscribe_to_kline_historical(client_instance)
+    await subscribe_to_kline_historical(client_instance)
 
     # Run indefinitely or handle shutdown gracefully
     try:
