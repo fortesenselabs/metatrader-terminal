@@ -25,8 +25,10 @@ LABEL org.opencontainers.image.description="Metatrader 5 Terminal(with nats serv
 LABEL org.opencontainers.image.licenses=MIT
 
 # ----------------------------------------------------------------------------
-FROM alpine:3.15 AS base
-
+# FROM alpine:3.15 AS base
+FROM python:3.9-alpine3.15 AS base
+# FROM nats:2.7.4-alpine
+# FROM nats:2.8.4-alpine3.15 AS base 
 
 USER root
 ENV WINEPREFIX=/root/.wine
@@ -38,6 +40,8 @@ ENV HOME=/root
 # ENV NOVNC_TAG="v1.3.0"
 # ENV WEBSOCKIFY_TAG="v0.10.0"
 
+# WORKDIR /app
+# COPY nats.conf ./
 
 # Update package lists
 RUN apk update 
@@ -49,8 +53,6 @@ RUN apk add --update --no-cache python3-dev py3-setuptools sudo wget supervisor 
     && pip install --upgrade pip \
     && echo "$USER:$PASSWORD" | /usr/sbin/chpasswd \
     && rm -rf /apk /tmp/* /var/cache/apk/* /$HOME/get-pip.py 
-
-# RUN pip install supervisor==4.2.2
 
 # Install X11 server and dummy device
 RUN apk add --no-cache libcrypto3 
@@ -81,9 +83,9 @@ COPY assets/openbox/menu.xml /etc/xdg/openbox/menu.xml
 COPY assets/start_server.sh /root/start_server.sh
 COPY server /root/server 
 
-RUN apk add --update --no-cache py3-numpy py3-pandas py3-pydantic \
+RUN apk add --update --no-cache py3-numpy py3-pydantic \
     && rm -rf /apk /tmp/* /var/cache/apk/*
-RUN  pip install -r /root/server/requirements.docker.txt
+RUN  pip install -r /root/server/requirements.txt
 
 COPY Metatrader-5 /root/Metatrader
 COPY dwxconnect/mql/* /root/Metatrader/MQL5/Experts/
