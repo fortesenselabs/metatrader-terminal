@@ -14,6 +14,9 @@ class Events:
     Order = "Event:Order:All"
     CreateOrder = "Event:Order:Create"
     CloseOrder = "Event:Order:Close"
+    ModifyOrder = "Event:Order:Modify"
+    GetOpenOrders = "Event:Order:Get:Open"
+    GetCloseOrders = "Event:Order:Get:Close"
 
     # Account
     Account = "Event:Account:All"

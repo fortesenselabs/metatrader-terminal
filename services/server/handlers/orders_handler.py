@@ -6,14 +6,15 @@ from models import (
     OrderResponse,
     CreateOrderRequest,
     CancelOrderRequest,
+    ModifyOrderRequest,
     MTOrderType,
     SideType,
     NewOrderEvent,
+    MultiOrdersResponse,
 )
 from internal import SocketIOServerClient
 from utils import Logger, date_to_timestamp
 from .base_handler import BaseHandler
-
 
 class OrderHandler(BaseHandler):
     """
@@ -38,13 +39,19 @@ class OrderHandler(BaseHandler):
 
         Args:
             dwx_client_params (DWXClientParams): An object containing parameters required to
-                                               initialize a DWXClient instance.
+                                                 initialize a DWXClient instance.
             pubsub_instance (SocketIOServerClient): The client for Pub/Sub messaging.
         """
         super().__init__(dwx_client_params, pubsub_instance)
         self.logger = Logger(name=__class__.__name__)
 
     async def _handle_create_order_event(self, latest_order):
+        """
+        Handles the event when a new order is created.
+
+        Args:
+            latest_order (dict): The latest order information.
+        """
         try:
             if latest_order["event_type"] == "Order:Created":
                 new_order = await self.create_order(
@@ -57,6 +64,12 @@ class OrderHandler(BaseHandler):
             pass
 
     async def _handle_close_order_event(self, latest_order):
+        """
+        Handles the event when an order is closed.
+
+        Args:
+            latest_order (dict): The latest order information.
+        """
         try:
             if latest_order["event_type"] == "Order:Removed":
                 new_order = await self.close_order(
@@ -70,7 +83,7 @@ class OrderHandler(BaseHandler):
 
     def on_order_event(self):
         """
-        Handle outgoing/incoming order events.
+        Handles outgoing/incoming order events.
 
         This method receives order event data and performs actions based on the event type.
         """
@@ -105,6 +118,13 @@ class OrderHandler(BaseHandler):
         asyncio.run(main())
 
     async def publish_to_subscriber(self, event_type, payload):
+        """
+        Publishes an event to the subscriber.
+
+        Args:
+            event_type (str): The type of event to publish.
+            payload (dict): The data to publish with the event.
+        """
         await self.pubsub.publish(event_type, payload)
 
     async def get_orders(self):
@@ -119,17 +139,30 @@ class OrderHandler(BaseHandler):
         """
         raise NotImplementedError("get_orders must be implemented by a subclass")
 
-    async def get_open_orders(self):
+    async def get_open_orders(self) -> MultiOrdersResponse:
         """
         Retrieves all open orders from MetaTrader.
 
-        Similar to get_orders, this method should be overridden to implement the logic for
-        fetching open orders.
+        This method should be overridden to implement the logic for fetching open orders.
 
-        Raises:
-            NotImplementedError: This method is intended to be overridden by a subclass.
+        Returns:
+            MultiOrdersResponse: The response containing open orders.
         """
-        raise NotImplementedError("get_open_orders must be implemented by a subclass")
+        open_orders = []
+        for order_id, order in self.dwx_client.open_orders.items():
+            response = {
+                "order_id": str(order_id),
+                "symbol": order["symbol"],
+                "time": date_to_timestamp(order["open_time"]),
+                "price": str(order["open_price"]),
+                "executed_qty": str(order["lots"]),
+                "side": SideType.from_string(str(order["type"]).upper()),
+                "stop_loss": order["SL"],
+                "take_profit": order["TP"],
+            }
+            open_orders.append(OrderResponse(**response))
+
+        return MultiOrdersResponse(orders=open_orders)
 
     async def create_order(
         self,
@@ -142,11 +175,12 @@ class OrderHandler(BaseHandler):
 
         Args:
             order_request (CreateOrderRequest): The request object containing order details.
+            is_order_executed (bool): Flag indicating if the order is already executed.
+            mt_executed_order (dict): The executed order details.
 
         Returns:
             OrderResponse: The response object containing details of the created order.
         """
-
         if is_order_executed:
             response = {
                 "order_id": str(mt_executed_order["order_id"]),
@@ -154,11 +188,9 @@ class OrderHandler(BaseHandler):
                 "time": date_to_timestamp(mt_executed_order["open_time"]),
                 "price": str(mt_executed_order["open_price"]),
                 "executed_qty": str(mt_executed_order["lots"]),
-                # "time_in_force": mt_executed_order["time_in_force"],
-                # "type": "MARKET",
                 "side": SideType.from_string(str(mt_executed_order["type"]).upper()),
-                # "stop_loss": mt_executed_order["SL"],
-                # "take_profit": mt_executed_order["TP"],
+                "stop_loss": mt_executed_order["SL"],
+                "take_profit": mt_executed_order["TP"],
             }
 
             return OrderResponse(**response)
@@ -186,11 +218,12 @@ class OrderHandler(BaseHandler):
 
         Args:
             order_request (CancelOrderRequest): The request object containing order details.
+            is_order_executed (bool): Flag indicating if the order is already executed.
+            mt_executed_order (dict): The executed order details.
 
         Returns:
             OrderResponse: The response object containing details of the closed order.
         """
-
         if is_order_executed:
             response = {
                 "order_id": str(mt_executed_order["order_id"]),
@@ -198,43 +231,74 @@ class OrderHandler(BaseHandler):
                 "time": date_to_timestamp(mt_executed_order["open_time"]),
                 "price": str(mt_executed_order["open_price"]),
                 "executed_qty": str(mt_executed_order["lots"]),
-                # "time_in_force": mt_executed_order["time_in_force"],
-                # "type": "MARKET",
                 "side": SideType.from_string(str(mt_executed_order["type"]).upper()),
-                # "stop_loss": mt_executed_order["SL"],
-                # "take_profit": mt_executed_order["TP"],
+                "stop_loss": mt_executed_order["SL"],
+                "take_profit": mt_executed_order["TP"],
             }
 
             return OrderResponse(**response)
 
-        if order_request.close_all:
-            self.dwx_client.close_all_orders()
-        elif order_request.symbol is not None:
-            self.dwx_client.close_orders_by_symbol(symbol=order_request.symbol)
-        elif order_request.magic_id is not None:
-            self.dwx_client.close_orders_by_magic(magic=order_request.magic_id)
-        elif order_request.order_id is not None:
-            self.dwx_client.close_order(
-                ticket=order_request.order_id, lots=order_request.quantity
+        await asyncio.sleep(0.1)  # wait for sometime before closing orders,
+        # the async nature of the server seems to make this run faster than it should.
+        opened_orders = await self.get_open_orders()
+        if len(opened_orders.orders) > 0:
+            if order_request.close_all:
+                self.dwx_client.close_all_orders()
+            elif order_request.symbol is not None:
+                self.dwx_client.close_orders_by_symbol(symbol=order_request.symbol)
+            elif order_request.magic_id is not None:
+                self.dwx_client.close_orders_by_magic(magic=order_request.magic_id)
+            elif order_request.order_id is not None:
+                self.dwx_client.close_order(
+                    ticket=order_request.order_id, lots=order_request.quantity
+                )
+            else:
+                self.dwx_client.close_all_orders()
+
+    async def modify_order(
+        self,
+        order_request: Optional[ModifyOrderRequest] = None,
+        is_order_executed: bool = False,
+        mt_executed_order: Optional[Dict] = None,
+    ) -> OrderResponse:
+        """
+        Modifies an existing order.
+
+        Args:
+            order_request (ModifyOrderRequest): The request object containing order details.
+            is_order_executed (bool): Flag indicating if the order is already executed.
+            mt_executed_order (dict): The executed order details.
+
+        Returns:
+            OrderResponse: The response object containing details of the modified order.
+        """
+        if is_order_executed:
+            response = {
+                "order_id": str(mt_executed_order["order_id"]),
+                "symbol": mt_executed_order["symbol"],
+                "time": date_to_timestamp(mt_executed_order["open_time"]),
+                "price": str(mt_executed_order["open_price"]),
+                "executed_qty": str(mt_executed_order["lots"]),
+                "side": SideType.from_string(str(mt_executed_order["type"]).upper()),
+                "stop_loss": mt_executed_order["SL"],
+                "take_profit": mt_executed_order["TP"],
+            }
+
+            return OrderResponse(**response)
+
+        await asyncio.sleep(0.1)
+        opened_orders = await self.get_open_orders()
+        if len(opened_orders.orders) > 0:
+            self.dwx_client.modify_order(
+                ticket=order_request.order_id,
+                price=order_request.price,
+                stop_loss=order_request.stop_loss_price,
+                take_profit=order_request.take_profit_price,
             )
-        else:
-            self.dwx_client.close_all_orders()
-
-    async def get_open_orders(self) -> List[OrderResponse]:
-        open_orders = self.dwx_client.open_orders
-        for order_id, order in open_orders.items():
-            pass
-
-        return open_orders
-
-    async def modify_order(self):
-        # modify_order
-        # self.dwx_client.modify_order()
-        return
 
     async def search_orders_by_magic(self, magic_id: int) -> List[NewOrderEvent]:
         """
-        Search for orders with a specific magic id.
+        Searches for orders with a specific magic id.
 
         Args:
             magic_id (int): The magic id to search for.

@@ -5,7 +5,7 @@
 
 from typing import Optional, List, Union
 from enum import Enum
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 
 
 class SideType(Enum):
@@ -77,6 +77,13 @@ class CancelOrderRequest(BaseModel):
     close_all: bool = False
 
 
+class ModifyOrderRequest(BaseModel):
+    order_id: str
+    price: Optional[str] = "0"
+    stop_loss_price: Optional[str] = "0"
+    take_profit_price: Optional[str] = "0"
+
+
 class OrderResponse(BaseModel):
     order_id: Optional[str] = None
     symbol: str
@@ -85,10 +92,19 @@ class OrderResponse(BaseModel):
     price: Optional[str] = None
     orig_qty: Optional[str] = None
     executed_qty: Optional[str] = None
+    stop_loss: Optional[str] = None
+    take_profit: Optional[str] = None
     time_in_force: Optional[TimeInForceType] = TimeInForceType.GTC
     type: Optional[OrderType] = OrderType.MARKET
     side: Optional[SideType] = None
 
+    @model_validator(mode="after")
+    def adjust_tp_and_sl(self):
+        self.stop_loss = None if self.stop_loss == 0 else self.stop_loss
+        self.take_profit = None if self.take_profit == 0 else self.take_profit
+        return self
 
-class OpenOrdersResponse(BaseModel):
+
+# for getting opened and closed orders
+class MultiOrdersResponse(BaseModel):
     orders: Optional[List[OrderResponse]] = None

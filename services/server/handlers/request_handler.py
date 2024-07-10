@@ -118,6 +118,29 @@ class RequestHandler:
             self.logger.error(f"Failed to register handler for '{event}': {e}")
             raise
 
+    async def get_open_orders_handler(
+        self, sid: str, data: dict
+    ) -> Optional[OrderResponse]:
+        """
+        Handler function for fetching open orders.
+
+        Args:
+            sid (str): Socket.IO session ID.
+            data (dict): Data containing request details.
+
+        Returns:
+            Optional[OrderResponse]: Order information if successful, None otherwise.
+        """
+        try:
+            orders = await self.order_handler.get_open_orders()
+            await self.server_instance.publish(
+                Events.GetOpenOrders, orders.model_dump_json()
+            )
+            return orders
+        except Exception as e:
+            self.logger.error(f"Error fetching open orders: {e}")
+            return None
+
     async def create_order_handler(
         self, sid: str, data: dict
     ) -> Optional[OrderResponse]:
@@ -158,29 +181,6 @@ class RequestHandler:
             return order_info
         except Exception as e:
             self.logger.error(f"Error closing order: {e}")
-            return None
-
-    async def get_open_orders_handler(
-        self, sid: str, data: dict
-    ) -> Optional[OrderResponse]:
-        """
-        Handler function for fetching open orders.
-
-        Args:
-            sid (str): Socket.IO session ID.
-            data (dict): Data containing request details.
-
-        Returns:
-            Optional[OrderResponse]: Order information if successful, None otherwise.
-        """
-        try:
-            orders = await self.order_handler.get_open_orders()
-            await self.server_instance.publish(
-                Events.GetOpenOrders, orders.model_dump_json()
-            )
-            return orders
-        except Exception as e:
-            self.logger.error(f"Error fetching open orders: {e}")
             return None
 
     async def modify_order_handler(
