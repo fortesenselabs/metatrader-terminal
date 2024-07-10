@@ -88,7 +88,8 @@ Login to the shell.
 
 ## TODOS
 
-- Write a client in Python (can follow the python-binance format).
+- Write a client in Python.
+- Add filter params for exchange info handler
 
 ## Resources
 
