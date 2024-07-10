@@ -10,23 +10,30 @@ class SocketIOServerClient:
 
     Attributes:
         instance (Union[socketio.AsyncServer, socketio.AsyncClient]): The Socket.IO server or client instance.
+        verbose (bool): Enables verbose logging if set to True.
         log (Logger): Logger instance for logging information and errors.
     """
 
     instance: Union[socketio.AsyncServer, socketio.AsyncClient]
-    log = Logger(name=__name__)
 
-    def __init__(self, instance: Union[socketio.AsyncServer, socketio.AsyncClient]):
+    def __init__(
+        self,
+        instance: Union[socketio.AsyncServer, socketio.AsyncClient],
+        verbose: bool = False,
+    ):
         """
         Initializes the SocketIOServerClient with a given instance.
 
         Args:
             instance (Union[socketio.AsyncServer, socketio.AsyncClient]): The Socket.IO server or client instance.
+            verbose (bool): Enables verbose logging if set to True.
         """
         self.instance = instance
+        self.verbose = verbose
+        self.log = Logger(name=__class__.__name__) if verbose else None
 
     @classmethod
-    async def create_server(cls, namespace="*") -> "SocketIOServerClient":
+    async def create_server(cls, namespace="*", verbose: bool = False) -> "SocketIOServerClient":
         """
         Creates a Socket.IO server.
 
@@ -41,18 +48,22 @@ class SocketIOServerClient:
         """
         try:
             sio = socketio.AsyncServer(async_mode="aiohttp", cors_allowed_origins="*")
-            return cls(sio)
+            return cls(sio, verbose=verbose)
         except Exception as e:
-            cls.log.error(f"Failed to create Socket.IO server: {e}")
+            if verbose and cls.log:
+                cls.log.error(f"Failed to create Socket.IO server: {e}")
             raise
 
     @classmethod
-    async def connect_client(cls, url: str) -> "SocketIOServerClient":
+    async def connect_client(
+        cls, url: str, verbose: bool = False
+    ) -> "SocketIOServerClient":
         """
         Connects a Socket.IO client to a server.
 
         Args:
             url (str): The URL of the server to connect to.
+            verbose (bool): Enables verbose logging if set to True.
 
         Returns:
             SocketIOServerClient: An instance of the SocketIOServerClient class with a client instance.
@@ -63,9 +74,10 @@ class SocketIOServerClient:
         try:
             sio = socketio.AsyncClient()
             await sio.connect(url)
-            return cls(sio)
+            return cls(sio, verbose=verbose)
         except Exception as e:
-            cls.log.error(f"Failed to connect to Socket.IO server: {e}")
+            if verbose and cls.log:
+                cls.log.error(f"Failed to connect to Socket.IO server: {e}")
             raise
 
     async def emit(self, event: str, payload: dict, **kwargs):
@@ -77,10 +89,12 @@ class SocketIOServerClient:
             payload (dict): The event data to be emitted.
         """
         try:
-            self.log.info(f"Emitting event: {event}")
+            if self.verbose and self.log:
+                self.log.info(f"Emitting event: {event}")
             await self.instance.emit(event, payload, **kwargs)
         except Exception as e:
-            self.log.error(f"Socket.IO emit error: {e}")
+            if self.verbose and self.log:
+                self.log.error(f"Socket.IO emit error: {e}")
 
     async def on_server_event(self, event: str, handler: Callable):
         """
@@ -94,12 +108,14 @@ class SocketIOServerClient:
 
             @self.instance.on(event)
             async def event_handler(sid, data):
-                self.log.info(f"Received server event '{event}' from {sid}")
+                if self.verbose and self.log:
+                    self.log.info(f"Received server event '{event}' from {sid}")
                 data = json.loads(data)
                 await handler(sid, data)
 
         except Exception as e:
-            self.log.error(f"Socket.IO 'on' server event error: {e}")
+            if self.verbose and self.log:
+                self.log.error(f"Socket.IO 'on' server event error: {e}")
 
     async def on_client_event(self, event: str, handler: Callable):
         """
@@ -113,11 +129,13 @@ class SocketIOServerClient:
 
             @self.instance.on(event)
             async def event_handler(data):
-                self.log.info(f"Received client event '{event}'")
+                if self.verbose and self.log:
+                    self.log.info(f"Received client event '{event}'")
                 await handler(data)
 
         except Exception as e:
-            self.log.error(f"Socket.IO 'on' client event error: {e}")
+            if self.verbose and self.log:
+                self.log.error(f"Socket.IO 'on' client event error: {e}")
 
     async def request(
         self, event: str, payload: dict, callback_timeout: int = None
@@ -137,13 +155,15 @@ class SocketIOServerClient:
             Exception: If the request fails.
         """
         try:
-            self.log.info(f"Sending request to event: {event}")
+            if self.verbose and self.log:
+                self.log.info(f"Sending request to event: {event}")
             response = await self.instance.emit(
                 event, payload, callback_timeout=callback_timeout
             )
             return response
         except Exception as e:
-            self.log.error(f"Socket.IO request error: {e}")
+            if self.verbose and self.log:
+                self.log.error(f"Socket.IO request error: {e}")
 
     async def publish(self, event: str, payload: dict):
         """
@@ -154,7 +174,8 @@ class SocketIOServerClient:
             payload (dict): The event data to be published.
         """
         await self.emit(event, payload)
-        self.log.info(f"Published event: {event}")
+        if self.verbose and self.log:
+            self.log.info(f"Published event: {event}")
 
     async def subscribe_to_server(self, event: str, handler: Callable):
         """
@@ -165,7 +186,8 @@ class SocketIOServerClient:
             handler (Callable): The handler function to be called when the event is received.
         """
         await self.on_client_event(event, handler)
-        self.log.info(f"Subscribed to Server event: {event}")
+        if self.verbose and self.log:
+            self.log.info(f"Subscribed to Server event: {event}")
 
     async def subscribe_to_client(self, event: str, handler: Callable):
         """
@@ -176,4 +198,5 @@ class SocketIOServerClient:
             handler (Callable): The handler function to be called when the event is received.
         """
         await self.on_server_event(event, handler)
-        self.log.info(f"Subscribed to Client event: {event}")
+        if self.verbose and self.log:
+            self.log.info(f"Subscribed to Client event: {event}")

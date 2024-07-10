@@ -13,7 +13,7 @@ settings = Settings()
 async def main():
     logger.info(f"Settings: {settings.model_dump()}")
 
-    server_instance = await SocketIOServerClient.create_server()
+    server_instance = await SocketIOServerClient.create_server(verbose=True)
     logger.info("Created Socket.IO Server Instance...")
 
     dwx_client_params = DWXClientParams(mt_directory_path=settings.METATRADER_FILES_DIR)
