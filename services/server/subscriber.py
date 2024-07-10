@@ -1,8 +1,8 @@
 import asyncio
 import json
 from typing import List
-from models import Events
 from models import (
+    Events,
     CreateOrderRequest,
     CancelOrderRequest,
     OrderResponse,
@@ -78,7 +78,7 @@ async def subscribe_to_kline_historical(client_instance: SocketIOServerClient):
         Events.KlineHistorical, historical_kline_response_handler
     )
     subscribe_request = HistoricalKlineRequest(
-        symbol="Step Index", time_frame=TimeFrame.M1, limit=1000
+        symbol="Step Index", time_frame=TimeFrame.M1, limit=10
     )
 
     await client_instance.publish(
@@ -92,7 +92,7 @@ async def subscribe_to_kline_historical(client_instance: SocketIOServerClient):
     # await client_instance.publish(Events.KlineHistorical, json.dumps(sr))
 
 
-async def create_new_order(client_instance: SocketIOServerClient):
+async def new_order(client_instance: SocketIOServerClient):
     await client_instance.subscribe_to_server(Events.CreateOrder, response_handler)
     await client_instance.subscribe_to_server(Events.CloseOrder, response_handler)
     # await client_instance.subscribe_to_server(Events.Order, response_handler)
@@ -109,8 +109,14 @@ async def create_new_order(client_instance: SocketIOServerClient):
             Events.CreateOrder, new_order_request.model_dump_json()
         )
 
+    await asyncio.sleep(7)  # wait for some time before closing orders
     request = CancelOrderRequest(close_all=True)
     await client_instance.publish(Events.CloseOrder, request.model_dump_json())
+
+
+async def get_open_orders(client_instance: SocketIOServerClient):
+    await client_instance.subscribe_to_server(Events.GetOpenOrders, response_handler)
+    await client_instance.publish(Events.GetOpenOrders, empty_request)
 
 
 async def get_account_and_exchange_info(client_instance: SocketIOServerClient):
@@ -128,13 +134,14 @@ async def main():
 
     # Subscribe to specific events
 
-    # await get_account_and_exchange_info(client_instance)
+    await get_account_and_exchange_info(client_instance)
 
-    # await create_new_order(client_instance)
+    # await new_order(client_instance)
+    await get_open_orders(client_instance)
 
     # await subscribe_to_kline_tick(client_instance)
     # await subscribe_to_kline_bar(client_instance)
-    await subscribe_to_kline_historical(client_instance)
+    # await subscribe_to_kline_historical(client_instance)
 
     # Run indefinitely or handle shutdown gracefully
     try:
