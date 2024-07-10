@@ -123,10 +123,15 @@ class RequestHandler:
             raise
 
     async def sync_terminal_data(self):
+        await self.exchange_info_handler.get_active_symbols()
+
         subscribe_request = HistoricalKlineRequest(
             symbol="Step Index", time_frame=TimeFrame.M1, limit=1000
         )
         await self.kline_handler.get_historic_data(subscribe_request)
+
+        await self.account_handler.get_account()
+
 
     async def get_open_orders_handler(
         self, sid: str, data: dict
