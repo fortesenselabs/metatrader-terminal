@@ -28,10 +28,14 @@ terraform.rc
 
 # Python
 __pycache__
+build
+dist
+metatrader.egg-info
+__pycache__
+.venv
 
 # Misc.
 **/tmp/*
-.venv
 screenshot.png
 encoded_file.txt
 decoded_file.txt

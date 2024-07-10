@@ -1,7 +1,7 @@
 import asyncio
 import json
 from typing import List
-from models import (
+from metatrader.models import (
     Events,
     CreateOrderRequest,
     CancelOrderRequest,
@@ -11,8 +11,8 @@ from models import (
     TimeFrame,
     HistoricalKlineRequest,
 )
-from internal import Logger, SocketIOServerClient
-
+from metatrader import Logger
+from metatrader.socketio import SocketIOServerClient
 
 logger = Logger(name=__name__)
 
@@ -75,7 +75,7 @@ async def subscribe_to_kline_historical(client_instance: SocketIOServerClient):
         Events.KlineHistorical, historical_kline_response_handler
     )
     subscribe_request = HistoricalKlineRequest(
-        symbol="Step Index", time_frame=TimeFrame.M1, limit=10
+        symbol="Step Index", time_frame=TimeFrame.M1, limit=1000
     )
 
     await client_instance.publish(
@@ -126,19 +126,19 @@ async def get_account_and_exchange_info(client_instance: SocketIOServerClient):
 
 async def main():
     url = "http://localhost:8000"
-    client_instance = await SocketIOServerClient.connect_client(url)
+    client_instance = await SocketIOServerClient.connect_client(url, verbose=True)
     logger.info(f"Connected to Server at {url}: {client_instance.instance.connected}")
 
     # Subscribe to specific events
 
-    # await get_account_and_exchange_info(client_instance)
+    await get_account_and_exchange_info(client_instance)
 
     # await new_order(client_instance)
     # await get_open_orders(client_instance)
 
-    # await subscribe_to_kline_tick(client_instance)
+    await subscribe_to_kline_tick(client_instance)
     # await subscribe_to_kline_bar(client_instance)
-    await subscribe_to_kline_historical(client_instance)
+    # await subscribe_to_kline_historical(client_instance)
 
     # Run indefinitely or handle shutdown gracefully
     try:
