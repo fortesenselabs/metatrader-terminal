@@ -239,10 +239,10 @@ class OrderHandler(BaseHandler):
 
             return OrderResponse(**response)
 
-        await asyncio.sleep(0.1)  # wait for sometime before closing orders,
+        await asyncio.sleep(5)  # wait for sometime before closing orders,
         # the async nature of the server seems to make this run faster than it should.
         opened_orders = await self.get_open_orders()
-        if len(opened_orders.orders) > 0:
+        if opened_orders.orders is not None and len(opened_orders.orders) > 0:
             if order_request.close_all:
                 self.dwx_client.close_all_orders()
             elif order_request.symbol is not None:
@@ -287,7 +287,7 @@ class OrderHandler(BaseHandler):
 
             return OrderResponse(**response)
 
-        await asyncio.sleep(0.1)
+        await asyncio.sleep(1)
         opened_orders = await self.get_open_orders()
         if len(opened_orders.orders) > 0:
             self.dwx_client.modify_order(
