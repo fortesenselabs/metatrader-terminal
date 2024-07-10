@@ -2,9 +2,9 @@
 
 # MetaTrader (with vnc-alpine)
 
-Imagine a dedicated server that acts as a bridge between your MetaTrader terminal and the world of automation and integration. That's the essence of the Metatrader Service. It's a standalone server application designed to interact with your MetaTrader terminal using NATS for efficient, real-time communication.
+Imagine a dedicated server that acts as a bridge between your MetaTrader terminal and the world of automation and integration. That's the essence of the Metatrader Service. It's a standalone server application designed to interact with your MetaTrader terminal using socket.io for efficient, real-time communication.
 
-- **NATS**: This high-performance messaging system enables fast, reliable communication between the server and your terminal. It allows for instant updates and reactive actions based on market movements, making it ideal for financial applications.
+- **socket.io**: This powerful library enables fast, reliable, bidirectional communication between the server and your terminal. It allows for instant updates and reactive actions based on market movements, making it ideal for financial applications.
 
 **Potential Use Cases:**
 
@@ -30,7 +30,7 @@ Based on Alpine Linux, the container is less than 500 MB in size. Most of this i
 
 - Metatrader 5 64bit
 - dwxconnect expert adviser datafeed [dwxconnect](https://github.com/darwinex/dwxconnect)
-- Server (with NATS)
+- Server (with socket.io)
 
 ## Usage
 
@@ -47,9 +47,9 @@ You can interact with the MT5 terminal using a graphical interface via VNC. Use 
 - **Username**: root
 - **Password**: root
 
-### Access the NATS Server
+### Access the socket.io Server
 
-To manage the MT5 terminal via the NATS server, configure your application to connect to `localhost:4222` using the NATS protocol. This allows you to interact programmatically with the MT5 terminal.
+To manage the MT5 terminal via the socket.io server, configure your application to connect to `localhost:3000` using the socket.io protocol. This allows you to interact programmatically with the MT5 terminal.
 
 ## Development
 

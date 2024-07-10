@@ -1,4 +1,4 @@
-name: Deploy MetaTrader 5 Terminal (with NATs)
+name: Deploy MetaTrader 5 Terminal (with Socket.io)
 
 on:
   push:
@@ -27,4 +27,4 @@ jobs:
           file: services/Dockerfile.mt5
           platforms: linux/amd64
           push: true
-          tags: fortesenselabs/metatrader-nats:lastest,fortesenselabs/metatrader-nats:5
+          tags: fortesenselabs/metatrader-sockets:lastest,fortesenselabs/metatrader-sockets:5
