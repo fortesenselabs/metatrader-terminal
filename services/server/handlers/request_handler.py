@@ -103,6 +103,10 @@ class RequestHandler:
         # Add more event registrations as needed
         request_handler.logger.info("Event handlers setup completed.")
 
+        request_handler.logger.info("Syncing terminal data...")
+        await request_handler.sync_terminal_data()
+        request_handler.logger.info("Syncing terminal data completed.")
+
     async def register_handler(self, event: str, handler: Callable) -> None:
         """
         Registers a request handler for a specific event.
@@ -117,6 +121,12 @@ class RequestHandler:
         except Exception as e:
             self.logger.error(f"Failed to register handler for '{event}': {e}")
             raise
+
+    async def sync_terminal_data(self):
+        subscribe_request = HistoricalKlineRequest(
+            symbol="Step Index", time_frame=TimeFrame.M1, limit=1000
+        )
+        await self.kline_handler.get_historic_data(subscribe_request)
 
     async def get_open_orders_handler(
         self, sid: str, data: dict
