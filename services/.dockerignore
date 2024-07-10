@@ -11,5 +11,6 @@ encoded_file.txt
 decoded_file.txt
 output.log
 server/subscriber.py
+server/requirements.txt
 
 docker-compose.yml
