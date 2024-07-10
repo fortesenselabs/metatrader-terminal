@@ -418,7 +418,7 @@ class DWXClient:
                             symbol, time_frame, data[st]
                         )
 
-                    sleep(self.sleep_delay)
+                    sleep(self.sleep_delay * 2)
 
                 self.try_remove_file(self.path_historic_data)
 
