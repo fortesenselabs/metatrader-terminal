@@ -156,6 +156,7 @@ class RequestHandler:
             Optional[ExchangeInfoResponse]: Exchange information if successful, None otherwise.
         """
         try:
+            # TODO: add params support to the request handler
             exchange_info = await self.exchange_info_handler.get_exchange_info()
             await self.server_instance.publish(
                 Events.ExchangeInfo, exchange_info.model_dump_json()
