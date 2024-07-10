@@ -35,4 +35,4 @@ async def main():
 
 if __name__ == "__main__":
     logger.info("API Server is starting up")
-    web.run_app(main(), port=8000, access_log_format=" :: %r %s %T %t")
+    web.run_app(main(), port=settings.PORT, access_log_format=" :: %r %s %T %t")

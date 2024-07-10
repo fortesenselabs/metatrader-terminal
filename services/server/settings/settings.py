@@ -9,6 +9,7 @@ load_dotenv()
 class Settings:
     def __init__(self):
         self.METATRADER_FILES_DIR = self._get_setting("MT_FILES_DIR")
+        self.PORT = int(self._get_setting("PORT"))
 
     def _get_setting(self, key):
         value = os.environ.get(f"{key}")
