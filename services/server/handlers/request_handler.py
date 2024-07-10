@@ -5,6 +5,7 @@ from models import (
     DWXClientParams,
     CreateOrderRequest,
     CancelOrderRequest,
+    ModifyOrderRequest,
     OrderResponse,
     ExchangeInfoResponse,
     AccountInfoResponse,
@@ -15,7 +16,7 @@ from models import (
     HistoricalKlineRequest,
 )
 from utils import Logger
-from .socketio import SocketIOServerClient
+from internal import SocketIOServerClient
 
 
 class RequestHandler:
@@ -28,6 +29,7 @@ class RequestHandler:
         exchange_info_handler (ExchangeInfoHandler): Handler instance for exchange information.
         account_handler (AccountHandler): Handler instance for account-related operations.
         kline_handler (KlineHandler): Handler instance for kline data operations.
+        connected_clients (set): Set of currently connected clients.
     """
 
     def __init__(
@@ -64,6 +66,16 @@ class RequestHandler:
             server_instance (SocketIOServerClient): Instance of the SocketIOServerClient connected to the server.
         """
         request_handler = cls(dwx_client_params, server_instance)
+
+        # Exchange and Account Info
+        await request_handler.register_handler(
+            Events.ExchangeInfo, request_handler.get_exchange_info_handler
+        )
+        await request_handler.register_handler(
+            Events.Account, request_handler.get_account_handler
+        )
+
+        # Orders
         await request_handler.register_handler(
             Events.CreateOrder, request_handler.create_order_handler
         )
@@ -71,11 +83,13 @@ class RequestHandler:
             Events.CloseOrder, request_handler.close_order_handler
         )
         await request_handler.register_handler(
-            Events.ExchangeInfo, request_handler.get_exchange_info_handler
+            Events.GetOpenOrders, request_handler.get_open_orders_handler
         )
         await request_handler.register_handler(
-            Events.Account, request_handler.get_account_handler
+            Events.ModifyOrder, request_handler.modify_order_handler
         )
+
+        # Kline
         await request_handler.register_handler(
             Events.KlineSubscribeTick, request_handler.add_kline_tick_subscriber
         )
@@ -146,17 +160,64 @@ class RequestHandler:
             self.logger.error(f"Error closing order: {e}")
             return None
 
+    async def get_open_orders_handler(
+        self, sid: str, data: dict
+    ) -> Optional[OrderResponse]:
+        """
+        Handler function for fetching open orders.
+
+        Args:
+            sid (str): Socket.IO session ID.
+            data (dict): Data containing request details.
+
+        Returns:
+            Optional[OrderResponse]: Order information if successful, None otherwise.
+        """
+        try:
+            orders = await self.order_handler.get_open_orders()
+            await self.server_instance.publish(
+                Events.GetOpenOrders, orders.model_dump_json()
+            )
+            return orders
+        except Exception as e:
+            self.logger.error(f"Error fetching open orders: {e}")
+            return None
+
+    async def modify_order_handler(
+        self, sid: str, data: dict
+    ) -> Optional[OrderResponse]:
+        """
+        Handler function for modifying open orders.
+
+        Args:
+            sid (str): Socket.IO session ID.
+            data (dict): Data containing order modification request details.
+
+        Returns:
+            Optional[OrderResponse]: Order information if successful, None otherwise.
+        """
+        try:
+            order_request = ModifyOrderRequest(**data)
+            order = await self.order_handler.modify_order(order_request, False)
+            return order
+        except Exception as e:
+            self.logger.error(f"Error modifying open order: {e}")
+            return None
+
     async def get_exchange_info_handler(
         self, sid: str, data: dict
     ) -> Optional[ExchangeInfoResponse]:
         """
         Handler function for fetching exchange information.
 
+        Args:
+            sid (str): Socket.IO session ID.
+            data (dict): Data containing request details.
+
         Returns:
             Optional[ExchangeInfoResponse]: Exchange information if successful, None otherwise.
         """
         try:
-            # TODO: add params support to the request handler
             exchange_info = await self.exchange_info_handler.get_exchange_info()
             await self.server_instance.publish(
                 Events.ExchangeInfo, exchange_info.model_dump_json()
@@ -172,6 +233,10 @@ class RequestHandler:
         """
         Handler function for fetching account information.
 
+        Args:
+            sid (str): Socket.IO session ID.
+            data (dict): Data containing request details.
+
         Returns:
             Optional[AccountInfoResponse]: Account information if successful, None otherwise.
         """
@@ -185,7 +250,9 @@ class RequestHandler:
             self.logger.error(f"Error fetching account info: {e}")
             return None
 
-    async def add_kline_tick_subscriber(self, sid, data: dict) -> SubscribeResponse:
+    async def add_kline_tick_subscriber(
+        self, sid: str, data: dict
+    ) -> SubscribeResponse:
         """
         Adds a new subscriber for kline tick data.
 
@@ -213,7 +280,7 @@ class RequestHandler:
         )
         return sub_response
 
-    async def add_kline_bar_subscriber(self, sid, data: dict) -> SubscribeResponse:
+    async def add_kline_bar_subscriber(self, sid: str, data: dict) -> SubscribeResponse:
         """
         Adds a new subscriber for kline bar data.
 
@@ -243,7 +310,9 @@ class RequestHandler:
         )
         return sub_response
 
-    async def get_historical_kline_data(self, sid, data: dict) -> SubscribeResponse:
+    async def get_historical_kline_data(
+        self, sid: str, data: dict
+    ) -> SubscribeResponse:
         """
         Adds a new subscriber for historical kline bar data.
 
