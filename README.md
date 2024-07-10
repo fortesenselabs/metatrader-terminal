@@ -90,6 +90,8 @@ Login to the shell.
 
 - Write a client in Python.
 - Add filter params for exchange info handler
+- Fix wait time for order closing requests in server, if sleep is removed close request are too fast, if sleep is added close request are quite slow
+- Fix vnc screen mode, it is the MetaTrader gui only shows in one part of the screen, it might be due to some broken packages
 
 ## Resources
 
