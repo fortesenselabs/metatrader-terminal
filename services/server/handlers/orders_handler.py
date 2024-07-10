@@ -16,6 +16,7 @@ from internal import SocketIOServerClient
 from utils import Logger, date_to_timestamp
 from .base_handler import BaseHandler
 
+
 class OrderHandler(BaseHandler):
     """
     Handler class for managing orders with MetaTrader.
@@ -157,8 +158,8 @@ class OrderHandler(BaseHandler):
                 "price": str(order["open_price"]),
                 "executed_qty": str(order["lots"]),
                 "side": SideType.from_string(str(order["type"]).upper()),
-                "stop_loss": order["SL"],
-                "take_profit": order["TP"],
+                "stop_loss": str(order["SL"]),
+                "take_profit": str(order["TP"]),
             }
             open_orders.append(OrderResponse(**response))
 
@@ -189,8 +190,8 @@ class OrderHandler(BaseHandler):
                 "price": str(mt_executed_order["open_price"]),
                 "executed_qty": str(mt_executed_order["lots"]),
                 "side": SideType.from_string(str(mt_executed_order["type"]).upper()),
-                "stop_loss": mt_executed_order["SL"],
-                "take_profit": mt_executed_order["TP"],
+                "stop_loss": str(mt_executed_order["SL"]),
+                "take_profit": str(mt_executed_order["TP"]),
             }
 
             return OrderResponse(**response)
@@ -232,8 +233,8 @@ class OrderHandler(BaseHandler):
                 "price": str(mt_executed_order["open_price"]),
                 "executed_qty": str(mt_executed_order["lots"]),
                 "side": SideType.from_string(str(mt_executed_order["type"]).upper()),
-                "stop_loss": mt_executed_order["SL"],
-                "take_profit": mt_executed_order["TP"],
+                "stop_loss": str(mt_executed_order["SL"]),
+                "take_profit": str(mt_executed_order["TP"]),
             }
 
             return OrderResponse(**response)
@@ -280,8 +281,8 @@ class OrderHandler(BaseHandler):
                 "price": str(mt_executed_order["open_price"]),
                 "executed_qty": str(mt_executed_order["lots"]),
                 "side": SideType.from_string(str(mt_executed_order["type"]).upper()),
-                "stop_loss": mt_executed_order["SL"],
-                "take_profit": mt_executed_order["TP"],
+                "stop_loss": str(mt_executed_order["SL"]),
+                "take_profit": str(mt_executed_order["TP"]),
             }
 
             return OrderResponse(**response)

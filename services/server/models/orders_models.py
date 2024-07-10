@@ -100,8 +100,17 @@ class OrderResponse(BaseModel):
 
     @model_validator(mode="after")
     def adjust_tp_and_sl(self):
-        self.stop_loss = None if self.stop_loss == 0 else self.stop_loss
-        self.take_profit = None if self.take_profit == 0 else self.take_profit
+        self.stop_loss = (
+            None
+            if self.stop_loss is not None and self.stop_loss == 0
+            else self.stop_loss
+        )
+        self.take_profit = (
+            None
+            if self.take_profit is not None and self.take_profit == 0
+            else self.take_profit
+        )
+
         return self
 
 
