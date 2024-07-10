@@ -1,9 +1,9 @@
 requests
 websockets
-pydantic
 python-dotenv
 colorlog
 fastapi[all]
+pydantic==2.8.0
 nats-py==2.0.0a2
 asyncio==3.4.3
 numpy==1.26.4
