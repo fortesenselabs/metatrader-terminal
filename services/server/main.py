@@ -2,7 +2,8 @@ from aiohttp import web
 from models import DWXClientParams
 from settings import Settings
 from utils import Logger
-from internal import SocketIOServerClient, RequestHandler
+from internal import SocketIOServerClient
+from handlers import RequestHandler
 
 
 logger = Logger(name=__name__)
