@@ -33,7 +33,9 @@ class SocketIOServerClient:
         self.log = Logger(name=__class__.__name__) if verbose else None
 
     @classmethod
-    async def create_server(cls, namespace="*", verbose: bool = False) -> "SocketIOServerClient":
+    async def create_server(
+        cls, namespace="*", verbose: bool = False
+    ) -> "SocketIOServerClient":
         """
         Creates a Socket.IO server.
 
@@ -200,3 +202,33 @@ class SocketIOServerClient:
         await self.on_server_event(event, handler)
         if self.verbose and self.log:
             self.log.info(f"Subscribed to Client event: {event}")
+
+    async def unsubscribe_from_server(self, event: str):
+        """
+        Unsubscribes from a specific event from the server.
+
+        Args:
+            event (str): The event name.
+        """
+        try:
+            if self.verbose and self.log:
+                self.log.info(f"Unsubscribing from server event: {event}")
+            self.instance.off(event)
+        except Exception as e:
+            if self.verbose and self.log:
+                self.log.error(f"Socket.IO 'off' server event error: {e}")
+
+    async def unsubscribe_from_client(self, event: str):
+        """
+        Unsubscribes from a specific event from the client.
+
+        Args:
+            event (str): The event name.
+        """
+        try:
+            if self.verbose and self.log:
+                self.log.info(f"Unsubscribing from client event: {event}")
+            self.instance.off(event)
+        except Exception as e:
+            if self.verbose and self.log:
+                self.log.error(f"Socket.IO 'off' client event error: {e}")
