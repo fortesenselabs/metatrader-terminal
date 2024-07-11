@@ -7,25 +7,6 @@ from pydantic import BaseModel, Field
 from .orders_models import SideType, OrderType, TimeInForceType
 
 
-class DWXClientParams(BaseModel):
-    """
-    This class defines the parameters required to initialize a DWXClient object.
-
-    Attributes:
-        mt_directory_path (str): The path to the MetaTrader directory containing the MQL5 libraries.
-        sleep_delay (float, optional): The amount of time (in seconds) to wait between retries when
-                                       communicating with MetaTrader. Defaults to 0.005(5ms).
-        max_retry_command_seconds (int, optional): The maximum number of seconds to keep retrying a
-                                                    command before giving up. Defaults to 10.
-        verbose (bool, optional): Whether to print verbose logging messages. Defaults to True.
-    """
-
-    mt_directory_path: str
-    sleep_delay: float = 0.005
-    max_retry_command_seconds: int = 10
-    verbose: bool = True
-
-
 class BarDataEvent(BaseModel):
     event: str = "on_bar_data"
     symbol: str
@@ -105,15 +86,6 @@ class MTOrderStatus(Enum):
     CANCELED = "CANCELED"
 
 
-# OrderStatusTypeNew             OrderStatusType = "NEW"
-# OrderStatusTypePartiallyFilled OrderStatusType = "PARTIALLY_FILLED"
-# OrderStatusTypeFilled          OrderStatusType = "FILLED"
-# OrderStatusTypeCanceled        OrderStatusType = "CANCELED"
-# OrderStatusTypePendingCancel   OrderStatusType = "PENDING_CANCEL"
-# OrderStatusTypeRejected        OrderStatusType = "REJECTED"
-# OrderStatusTypeExpired         OrderStatusType = "EXPIRED"
-
-
 class MTOrderEvent:
     def __init__(
         self,
@@ -171,55 +143,6 @@ class NewOrderEvent:
             f"type={self.type}, open_price={self.open_price}, open_time={self.open_time}, "
             f"sl={self.sl}, tp={self.tp}, pnl={self.pnl}, swap={self.swap}, comment={self.comment})"
         )
-
-
-# class SymbolData:
-#     def __init__(
-#         self,
-#         symbol: str,
-#         currency_base: str,
-#         currency_profit: str,
-#         currency_margin: str,
-#         contract_size: str,
-#         digits: str,
-#         point: str,
-#         spread: str,
-#         stops_level: str,
-#         price_change: str,
-#         price_volatility: str,
-#         volume_min: str,
-#         volume_max: str,
-#         volume_step: str,
-#         volume_limit: str,
-#         category: Optional[str],
-#         description: str,
-#     ):
-#         self.symbol = symbol
-#         self.currency_base = currency_base
-#         self.currency_profit = currency_profit
-#         self.currency_margin = currency_margin
-#         self.contract_size = contract_size
-#         self.digits = digits
-#         self.point = point
-#         self.spread = spread
-#         self.stops_level = stops_level
-#         self.price_change = price_change
-#         self.price_volatility = price_volatility
-#         self.volume_min = volume_min
-#         self.volume_max = volume_max
-#         self.volume_step = volume_step
-#         self.volume_limit = volume_limit
-#         self.category = category
-#         self.description = description
-
-#     def __repr__(self):
-#         return (
-#             f"SymbolData(symbol={self.symbol}, currency_base={self.currency_base}, currency_profit={self.currency_profit}, "
-#             f"currency_margin={self.currency_margin}, contract_size={self.contract_size}, digits={self.digits}, point={self.point}, "
-#             f"spread={self.spread}, stops_level={self.stops_level}, price_change={self.price_change}, price_volatility={self.price_volatility}, "
-#             f"volume_min={self.volume_min}, volume_max={self.volume_max}, volume_step={self.volume_step}, volume_limit={self.volume_limit}, "
-#             f"category={self.category}, description={self.description})"
-#         )
 
 
 class SymbolData(BaseModel):

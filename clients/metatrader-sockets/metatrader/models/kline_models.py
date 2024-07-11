@@ -52,32 +52,6 @@ class Kline(BaseModel):
     is_final: bool
 
 
-# class KlineRequest(BaseModel):
-#     symbol: str
-#     interval: TimeFrame
-#     start_time: Optional[float] = Field(
-#         default_factory=lambda: calculate_start_time(TimeFrame.D1)
-#     )
-#     end_time: Optional[float] = Field(
-#         default_factory=lambda: datetime.now(timezone.utc).timestamp()
-#     )
-#     time_zone: Optional[str] = Field(default="0", description="Default: 0 (UTC)")
-#     limit: Optional[int] = Field(default=10, le=500, description="Default 10; max 500")
-
-#     @model_validator(mode="after")
-#     def adjust_time(self):
-#         _interval = (
-#             self.interval if self.interval != TimeFrame.CURRENT else TimeFrame.M1
-#         )
-#         self.start_time = calculate_start_time(_interval)
-#         self.end_time = (
-#             self.end_time
-#             if self.end_time is not None
-#             else datetime.now(timezone.utc).timestamp()
-#         )
-#         return self
-
-
 class HistoricalKlineRequest(BaseModel):
     symbol: str
     time_frame: TimeFrame

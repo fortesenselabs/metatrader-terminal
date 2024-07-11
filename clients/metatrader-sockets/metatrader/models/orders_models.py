@@ -34,18 +34,6 @@ class OrderType(Enum):
     def export_all(cls) -> List[str]:
         return [order_type.value for order_type in cls]
 
-    # @classmethod
-    # def get_order_type(cls, order_type: MTOrderType) -> Optional["OrderType"]:
-    #     mapping = {
-    #         (SideType.BUY, OrderType.MARKET): cls.BUY,
-    #         (SideType.SELL, OrderType.MARKET): cls.SELL,
-    #         (SideType.BUY, OrderType.LIMIT): cls.BUY_LIMIT,
-    #         (SideType.SELL, OrderType.LIMIT): cls.SELL_LIMIT,
-    #         (SideType.BUY, OrderType.STOP): cls.BUY_STOP,
-    #         (SideType.SELL, OrderType.STOP): cls.SELL_STOP,
-    #     }
-    #     return mapping.get(order_type)
-
 
 # TODO: Add more
 class TimeInForceType(Enum):
@@ -74,7 +62,7 @@ class CancelOrderRequest(BaseModel):
     symbol: Optional[str] = None
     magic_id: Optional[int] = None
     quantity: Optional[str] = "0.1"
-    close_all: bool = False
+    close_all: bool = True
 
 
 class ModifyOrderRequest(BaseModel):
