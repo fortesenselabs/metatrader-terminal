@@ -2,7 +2,7 @@ import io
 import os
 from setuptools import setup, find_packages
 
-VERSION = "0.0.2"
+VERSION = "0.0.3"
 BASE_DIR = os.path.dirname(os.path.realpath(__file__))
 
 
@@ -21,7 +21,7 @@ setup(
     version=VERSION,
     packages=find_packages(),
     url="https://github.com/FortesenseLabs/metatrader-terminal/clients/metatrader-sockets",
-    download_url=f"https://github.com/FortesenseLabs/metatrader-terminal/archive/refs/tags/v{VERSION}.tar.gz",
+    download_url=f"https://github.com/FortesenseLabs/metatrader-terminal/releases/tag/{VERSION}",
     license="GPL-3.0",
     author="Fortesense Labs",
     author_email="fortesenselabs@gmail.com",
@@ -53,6 +53,7 @@ setup(
             "mt5",
             "mt4",
             "websockets",
+            "socketio",
             "mt5-ea",
             "f-api",
             "historical-data",
@@ -75,7 +76,7 @@ setup(
     ),
     project_urls={
         "Bug Reports": "https://github.com/FortesenseLabs/metatrader-terminal/issues",
-        "Source": "https://github.com/FortesenseLabs/metatrader-terminal/clients/metatrader-sockets",
-        "Documentation": "https://github.com/FortesenseLabs/metatrader-terminal/clients/metatrader-sockets/examples",
+        "Source": "https://github.com/FortesenseLabs/metatrader-terminal/tree/main/clients/metatrader-sockets/",
+        "Documentation": "https://github.com/FortesenseLabs/metatrader-terminal/tree/main/clients/metatrader-sockets/examples",
     },
 )
