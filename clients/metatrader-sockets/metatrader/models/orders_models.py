@@ -76,7 +76,7 @@ class OrderResponse(BaseModel):
     order_id: Optional[str] = None
     symbol: str
     status: Optional[str] = None
-    transact_time: Optional[int] = None
+    time: Optional[int] = None
     price: Optional[str] = None
     orig_qty: Optional[str] = None
     executed_qty: Optional[str] = None
