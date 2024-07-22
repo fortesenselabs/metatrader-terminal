@@ -36,9 +36,11 @@ jobs:
         run: python -m build
 
       - name: List dist directory contents
+        working-directory: clients/metatrader-sockets
         run: ls -l dist
 
       - name: Check if version exists
+        working-directory: clients/metatrader-sockets
         run: |
           python -m twine check dist/*
           if python -m twine check dist/* | grep "already exists"; then
