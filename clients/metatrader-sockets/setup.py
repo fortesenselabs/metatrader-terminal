@@ -2,25 +2,26 @@ import io
 import os
 from setuptools import setup, find_packages
 
-BASE_DIR = os.getcwd()
+VERSION = "0.0.1"
+BASE_DIR = os.path.dirname(os.path.realpath(__file__))
 
 
 def readme():
-    with io.open(f"{BASE_DIR}/README.md", encoding="utf-8") as f:
+    with io.open(os.path.join(BASE_DIR, "README.md"), encoding="utf-8") as f:
         return f.read()
 
 
 def requirements(filename):
-    with io.open(f"{BASE_DIR}/{filename}", encoding="utf-8") as f:
+    with io.open(os.path.join(BASE_DIR, filename), encoding="utf-8") as f:
         return [line.strip() for line in f.readlines()]
 
 
 setup(
-    name="metatrader-sockets",
-    version="0.0.1",
+    name="metatrader-sockets-client",
+    version=VERSION,
     packages=find_packages(),
     url="https://github.com/FortesenseLabs/metatrader-terminal",
-    download_url="https://github.com/FortesenseLabs/metatrader-terminal/archive/refs/tags/v0.0.1.tar.gz",
+    download_url=f"https://github.com/FortesenseLabs/metatrader-terminal/archive/refs/tags/v{VERSION}.tar.gz",
     license="GPL-3.0",
     author="Fortesense Labs",
     author_email="fortesenselabs@gmail.com",
