@@ -1,10 +1,40 @@
 import json
 import asyncio
-from datetime import datetime
-from typing import Any, Optional, Callable
-from metatrader.models import Events, AccountInfoResponse, ExchangeInfoResponse
+import typing as t
+from typing import Optional, Callable, List
+from metatrader.models import (
+    Events,
+    AccountInfoResponse,
+    ExchangeInfoResponse,
+    MultiOrdersResponse,
+    OrderResponse,
+    SubscribeResponse,
+    CreateOrderRequest,
+    CancelOrderRequest,
+    HistoricalKlineRequest,
+    KlineResponse,
+    TimeFrame,
+    DataMode,
+    SubscribeRequest,
+    SymbolMarketData,
+)
 from metatrader.logging import Logger
 from metatrader.socketio import SocketIOServerClient
+
+
+T = t.TypeVar("T")
+
+
+class get_something(t.Generic[T]):
+    def __new__(
+        cls,
+        v: str,
+    ):
+        generated_instance = super().__new__(cls)
+        return generated_instance.execute(v)
+
+    def execute(self, v: str) -> T:
+        return t.cast(T, v)
 
 
 class TerminalClient:
@@ -83,30 +113,6 @@ class TerminalClient:
         """
         await self.client_instance.publish(event, data)
 
-    async def wait_for_event(
-        self,
-        event_checker: Callable[[], bool],
-        sleep_delay: float = 0.005,
-        timeout: int = 10,
-    ) -> bool:
-        """
-        Waits for an event to occur within a timeout period.
-
-        Args:
-            event_checker (Callable[[], bool]): The function to check if the event occurred.
-            sleep_delay (float): The delay between checks in seconds.
-            timeout (int): The maximum time to wait for the event in seconds.
-
-        Returns:
-            bool: True if the event occurred within the timeout, False otherwise.
-        """
-        start_time = datetime.now()
-        while (datetime.now() - start_time).seconds < timeout:
-            if event_checker():
-                return True
-            await asyncio.sleep(sleep_delay)
-        return False
-
     def clear_session_data(self, event: str):
         """
         Clears the session data for a specific event.
@@ -117,6 +123,23 @@ class TerminalClient:
         if event in self.session_data:
             del self.session_data[event]
 
+    async def send_request(
+        self, event: str, request: str, output_type: t.Type[T]
+    ) -> Optional[T]:
+        await self.subscribe_to_event(event)
+        await self.publish_event(event, request)
+
+        if await self.client_instance.wait_for_event(
+            lambda: event in self.session_data, timeout=30
+        ):
+            response = self.session_data.get(event)
+            self.clear_session_data(event)
+            # await self.client_instance.unsubscribe_from_server(event)
+            return output_type(**response) if response else None
+
+        # await self.client_instance.unsubscribe_from_server(event)
+        return None
+
     async def get_account(self) -> Optional[AccountInfoResponse]:
         """
         Fetches the account information.
@@ -124,15 +147,13 @@ class TerminalClient:
         Returns:
             AccountInfoResponse: The account information response.
         """
-        await self.subscribe_to_event(Events.Account)
-        await self.publish_event(Events.Account, self.empty_request)
+        account_info = await self.send_request(
+            Events.Account, self.empty_request, AccountInfoResponse
+        )
+        if account_info is None:
+            return None
 
-        if await self.wait_for_event(lambda: Events.Account in self.session_data):
-            account_info = self.session_data.get(Events.Account)
-            self.clear_session_data(Events.Account)
-            return AccountInfoResponse(**account_info)
-
-        return None
+        return account_info
 
     async def get_exchange_info(self) -> Optional[ExchangeInfoResponse]:
         """
@@ -141,13 +162,113 @@ class TerminalClient:
         Returns:
             ExchangeInfoResponse: The exchange information response.
         """
-        await self.subscribe_to_event(Events.ExchangeInfo)
-        await self.publish_event(Events.ExchangeInfo, self.empty_request)
+        exchange_info = await self.send_request(
+            Events.ExchangeInfo, self.empty_request, ExchangeInfoResponse
+        )
+        if exchange_info is None:
+            return None
 
-        if await self.wait_for_event(lambda: Events.ExchangeInfo in self.session_data):
-            exchange_info = self.session_data.get(Events.ExchangeInfo)
-            self.clear_session_data(Events.ExchangeInfo)
-            return ExchangeInfoResponse(**exchange_info)
+        return exchange_info
+
+    async def get_open_orders(self) -> Optional[MultiOrdersResponse]:
+        open_orders = await self.send_request(
+            Events.GetOpenOrders, self.empty_request, MultiOrdersResponse
+        )
+        if open_orders is None:
+            return None
+
+        return open_orders
+
+    async def create_order(
+        self, order_request: CreateOrderRequest
+    ) -> Optional[OrderResponse]:
+        new_order = await self.send_request(
+            Events.CreateOrder, order_request.model_dump_json(), OrderResponse
+        )
+        if new_order is None:
+            return None
+
+        return new_order
+
+    async def close_order(
+        self, order_request: CancelOrderRequest
+    ) -> Optional[OrderResponse]:
+
+        # TODO: consider multiple closing orders
+        order = await self.send_request(
+            Events.CloseOrder, order_request.model_dump_json(), OrderResponse
+        )
+        if order is None:
+            return None
+
+        return order
+
+    async def get_historical_kline_data(
+        self, request: HistoricalKlineRequest
+    ) -> Optional[KlineResponse]:
+        subscribe_response = await self.send_request(
+            Events.KlineHistorical, request.model_dump_json(), SubscribeResponse
+        )
+        if self.verbose:
+            self.logger.info(subscribe_response)
+
+        if subscribe_response is not None and subscribe_response.subscribed:
+            await self.subscribe_to_event(Events.KlineHistorical)
+            if await self.client_instance.wait_for_event(
+                lambda: Events.KlineHistorical in self.session_data
+            ):
+                klines = self.session_data.get(Events.KlineHistorical)
+                self.clear_session_data(Events.KlineHistorical)
+                if self.verbose:
+                    self.logger.info(klines)
+
+                return KlineResponse(**klines)
+
+        return None
+
+    async def stream(
+        self,
+        callback: Callable,
+        symbols: List[str] = ["Step Index"],
+        data_mode: DataMode = DataMode.TICK,
+        time_frame: Optional[TimeFrame] = TimeFrame.CURRENT,
+    ):
+        """
+        Subscribe to realtime Tick and Bar Data
+        """
+        if data_mode == DataMode.TICK and time_frame != TimeFrame.CURRENT:
+            time_frame = TimeFrame.CURRENT
+        else:
+            if data_mode == DataMode.BAR and time_frame == TimeFrame.CURRENT:
+                time_frame = TimeFrame.M1
+
+        symbols_data = []
+        for symbol in symbols:
+            symbols_data.append(
+                SymbolMarketData(
+                    symbol=symbol,
+                    time_frame=time_frame,
+                    mode=data_mode if data_mode == DataMode.TICK else DataMode.BAR,
+                )
+            )
+
+        subscribe_request = SubscribeRequest(symbols_data=symbols_data)
+        selected_event = (
+            Events.KlineSubscribeTick
+            if data_mode == DataMode.TICK
+            else Events.KlineSubscribeBar
+        )
+
+        await self.client_instance.subscribe_to_server(selected_event, callback)
+        await self.client_instance.publish(
+            selected_event, subscribe_request.model_dump_json()
+        )
+
+        try:
+            await asyncio.Event().wait()
+        except KeyboardInterrupt:
+            if self.logger:
+                self.logger.info("Closing Stream...")
 
         return None
 
@@ -174,3 +295,4 @@ class TerminalClient:
         # except KeyboardInterrupt:
         #     if self.logger:
         #         self.logger.info("Shutting down...")
+
