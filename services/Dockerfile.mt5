@@ -86,7 +86,7 @@ RUN apk add --update --no-cache py3-numpy py3-pandas py3-pydantic \
 RUN  pip install -r /root/server/requirements.docker.txt
 
 COPY Metatrader-5 /root/Metatrader
-COPY dwxconnect/mql/* /root/Metatrader/MQL5/Experts/
+# COPY dwxconnect/mql/* /root/Metatrader/MQL5/Experts/
 
 # Login Manager
 RUN apk --no-cache add slim consolekit \
