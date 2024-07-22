@@ -1,5 +1,7 @@
 import json
+import asyncio
 import socketio
+from datetime import datetime
 from typing import Callable, Union
 from .logging import Logger
 
@@ -232,3 +234,27 @@ class SocketIOServerClient:
         except Exception as e:
             if self.verbose and self.log:
                 self.log.error(f"Socket.IO 'off' client event error: {e}")
+
+    async def wait_for_event(
+        self,
+        event_checker: Callable[[], bool],
+        sleep_delay: float = 0.005,
+        timeout: int = 60,
+    ) -> bool:
+        """
+        Waits for an event to occur within a timeout period.
+
+        Args:
+            event_checker (Callable[[], bool]): The function to check if the event occurred.
+            sleep_delay (float): The delay between checks in seconds.
+            timeout (int): The maximum time to wait for the event in seconds.
+
+        Returns:
+            bool: True if the event occurred within the timeout, False otherwise.
+        """
+        start_time = datetime.now()
+        while (datetime.now() - start_time).seconds < timeout:
+            if event_checker():
+                return True
+            await asyncio.sleep(sleep_delay)
+        return False
