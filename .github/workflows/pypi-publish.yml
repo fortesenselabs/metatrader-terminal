@@ -2,6 +2,8 @@ name: Create Release and Upload Python Package
 
 on:
   push:
+    branches:
+      - "main"
     paths:
       - "clients/metatrader-sockets/setup.py"
 
