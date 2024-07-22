@@ -13,7 +13,7 @@ with open(setup_path, "r") as f:
     setup_contents = f.read()
     print(setup_contents)
 
-match = re.search(r"version\s*=\s*['\"]([^'\"]+)['\"]", setup_contents)
+match = re.search(r"VERSION\s*=\s*['\"]([^'\"]+)['\"]", setup_contents)
 if match:
     setup_version = match.group(1)
 else:
