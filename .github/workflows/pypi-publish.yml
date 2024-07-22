@@ -3,7 +3,7 @@ name: Create Release and Upload Python Package
 on:
   push:
     paths:
-      - "setup.py"
+      - "clients/metatrader-sockets/setup.py"
 
 jobs:
   build:
