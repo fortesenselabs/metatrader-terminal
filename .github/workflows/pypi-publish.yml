@@ -32,6 +32,7 @@ jobs:
         run: python .github/scripts/create_release.py
 
       - name: Build package
+        working-directory: clients/metatrader-sockets
         run: python -m build
 
       - name: Check if version exists
