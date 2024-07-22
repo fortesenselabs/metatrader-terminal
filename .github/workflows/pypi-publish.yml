@@ -53,3 +53,5 @@ jobs:
         with:
           user: __token__
           password: ${{ secrets.PYPI_API_TOKEN }}
+          packages_dir: clients/metatrader-sockets/dist
+          verbose: true
