@@ -1,4 +1,7 @@
 class Events:
+    # End Event
+    End = "Event:End"
+
     # Errors
     CriticalError = "Event:CriticalError"
 

@@ -1,8 +1,10 @@
+import time
+import asyncio
 from typing import Callable, Optional
 from handlers import ExchangeInfoHandler, OrderHandler, AccountHandler, KlineHandler
 from models import (
+    MTClientParams,
     Events,
-    DWXClientParams,
     CreateOrderRequest,
     CancelOrderRequest,
     ModifyOrderRequest,
@@ -16,7 +18,7 @@ from models import (
     HistoricalKlineRequest,
 )
 from utils import Logger
-from internal import SocketIOServerClient
+from internal import SocketIOServerClient, MTSocketClient
 
 
 class RequestHandler:
@@ -33,39 +35,40 @@ class RequestHandler:
     """
 
     def __init__(
-        self, dwx_client_params: DWXClientParams, server_instance: SocketIOServerClient
+        self, mt_client_params: MTClientParams, server_instance: SocketIOServerClient
     ) -> None:
         """
         Initializes the RequestHandler with a SocketIOServerClient instance.
 
         Args:
-            dwx_client_params (DWXClientParams): Parameters for the DWX client.
+            mt_socket_client (MTSocketClient): Parameters for the DWX client.
             server_instance (SocketIOServerClient): Instance of the SocketIOServerClient connected to the server.
         """
         self.logger = Logger(name=__class__.__name__)
         self.server_instance = server_instance
-        self.order_handler = OrderHandler(dwx_client_params, self.server_instance)
+
+        self.order_handler = OrderHandler(mt_client_params, self.server_instance)
         self.exchange_info_handler = ExchangeInfoHandler(
-            dwx_client_params, self.server_instance
+            mt_client_params, self.server_instance
         )
         self.account_handler = AccountHandler(
-            dwx_client_params, self.server_instance, self.exchange_info_handler
+            mt_client_params, self.server_instance, self.exchange_info_handler
         )
-        self.kline_handler = KlineHandler(dwx_client_params, self.server_instance)
+        self.kline_handler = KlineHandler(mt_client_params, self.server_instance)
         self.connected_clients = set()
 
     @classmethod
     async def setup_event_handlers(
-        cls, dwx_client_params: DWXClientParams, server_instance: SocketIOServerClient
+        cls, mt_client_params: MTClientParams, server_instance: SocketIOServerClient
     ) -> None:
         """
         Sets up event handlers for the Socket.IO server.
 
         Args:
-            dwx_client_params (DWXClientParams): Parameters for the DWX client.
+            mt_socket_client (MTSocketClient): Parameters for the DWX client.
             server_instance (SocketIOServerClient): Instance of the SocketIOServerClient connected to the server.
         """
-        request_handler = cls(dwx_client_params, server_instance)
+        request_handler = cls(mt_client_params, server_instance)
 
         # Exchange and Account Info
         await request_handler.register_handler(
@@ -103,9 +106,7 @@ class RequestHandler:
         # Add more event registrations as needed
         request_handler.logger.info("Event handlers setup completed.")
 
-        request_handler.logger.info("Syncing terminal data...")
         await request_handler.sync_terminal_data()
-        request_handler.logger.info("Syncing terminal data completed.")
 
     async def register_handler(self, event: str, handler: Callable) -> None:
         """
@@ -123,15 +124,20 @@ class RequestHandler:
             raise
 
     async def sync_terminal_data(self):
-        await self.exchange_info_handler.get_active_symbols()
+        self.logger.info("Syncing terminal data...")
+        await asyncio.sleep(1)
+        symbols = await self.exchange_info_handler.get_active_symbols()
+        self.logger.debug(f"symbols: {symbols}")
 
-        subscribe_request = HistoricalKlineRequest(
-            symbol="Step Index", time_frame=TimeFrame.M1, limit=1000
-        )
-        await self.kline_handler.get_historic_data(subscribe_request)
-
-        await self.account_handler.get_account()
-
+        if symbols is not None and len(symbols) > 0:
+            selected_symbol = symbols[list(symbols.keys())[-1]]
+            self.logger.debug(f"selected symbol data: {selected_symbol}")
+            await self.kline_handler.get_historic_data(
+                HistoricalKlineRequest(
+                    symbol=selected_symbol.symbol, time_frame=TimeFrame.M1, limit=100
+                )
+            )
+        self.logger.info("Syncing terminal data completed.")
 
     async def get_open_orders_handler(
         self, sid: str, data: dict
@@ -170,9 +176,9 @@ class RequestHandler:
             Optional[OrderResponse]: Order information if successful, None otherwise.
         """
         try:
-            order_request = CreateOrderRequest(**data)
-            order_info = await self.order_handler.create_order(order_request, False)
-            return order_info
+            request = CreateOrderRequest(**data)
+            order = await self.order_handler.create_order(request, False)
+            return order
         except Exception as e:
             self.logger.error(f"Error creating order: {e}")
             return None
@@ -190,10 +196,23 @@ class RequestHandler:
         Returns:
             Optional[OrderResponse]: Order information if successful, None otherwise.
         """
+        await asyncio.sleep(0.005 * 2)  # wait for sometime before closing orders,
+        # the async nature of the server seems to make this run faster than it should.
         try:
-            order_request = CancelOrderRequest(**data)
-            order_info = await self.order_handler.close_order(order_request, False)
-            return order_info
+            current_open_orders = await self.order_handler.get_open_orders()
+            if (
+                current_open_orders.orders is None
+                or len(current_open_orders.orders) == 0
+            ):
+                order = OrderResponse()
+                await self.server_instance.publish(
+                    Events.CloseOrder, order.model_dump_json()
+                )
+                return order
+
+            request = CancelOrderRequest(**data)
+            order = await self.order_handler.close_order(request, False)
+            return order
         except Exception as e:
             self.logger.error(f"Error closing order: {e}")
             return None
@@ -212,8 +231,8 @@ class RequestHandler:
             Optional[OrderResponse]: Order information if successful, None otherwise.
         """
         try:
-            order_request = ModifyOrderRequest(**data)
-            order = await self.order_handler.modify_order(order_request, False)
+            request = ModifyOrderRequest(**data)
+            order = await self.order_handler.modify_order(request, False)
             return order
         except Exception as e:
             self.logger.error(f"Error modifying open order: {e}")

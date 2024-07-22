@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 from .orders_models import SideType, OrderType, TimeInForceType
 
 
-class DWXClientParams(BaseModel):
+class MTClientParams(BaseModel):
     """
     This class defines the parameters required to initialize a DWXClient object.
 

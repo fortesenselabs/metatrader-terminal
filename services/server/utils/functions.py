@@ -1,4 +1,6 @@
+import os
 import re
+import shutil
 from typing import List
 from datetime import datetime, timezone
 from models import ServerTimeResponse
@@ -64,3 +66,34 @@ def split_by_number(timeframe: str):
         parts = re.split(number, timeframe)
         return parts[0], number
     return None, None
+
+
+def delete_folder(folder_path):
+    """Deletes a folder and all its contents."""
+    if not os.path.exists(folder_path):
+        raise FileNotFoundError(f"Folder '{folder_path}' does not exist.")
+    try:
+        shutil.rmtree(folder_path)
+        print(f"Folder '{folder_path}' deleted successfully.")
+    except PermissionError:
+        raise PermissionError(
+            f"Permission denied: Unable to delete folder '{folder_path}'."
+        )
+    except Exception as e:
+        raise RuntimeError(f"Error deleting folder '{folder_path}': {e}")
+
+
+def ensure_directory_exists(dir_path):
+    """Ensures that a directory exists. If it doesn't, create it."""
+    if not os.path.exists(dir_path):
+        try:
+            os.makedirs(dir_path)
+            print(f"Directory '{dir_path}' created successfully.")
+        except PermissionError:
+            raise PermissionError(
+                f"Permission denied: Unable to create directory '{dir_path}'."
+            )
+        except Exception as e:
+            raise RuntimeError(f"Error creating directory '{dir_path}': {e}")
+    else:
+        print(f"Directory '{dir_path}' already exists.")

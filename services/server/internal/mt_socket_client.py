@@ -291,12 +291,11 @@ class MTSocketClient:
                         order["open_time"], "%Y.%m.%d %H:%M:%S"
                     )
                     self.open_orders[order_id] = order
-                    del self.open_orders[order_id]["order_id"]
+                    # del self.open_orders[order_id]["order_id"]
                     new_event = True
                     if self.verbose_on_order_event:
                         self.logger.debug(f"New order: {order}")
 
-                self.logger.debug(f"self.open_orders: {self.open_orders}")
                 if len(self.open_orders) > 0:
                     # Ensure all orders have open_time_dt
                     for order in self.open_orders.values():
@@ -329,8 +328,8 @@ class MTSocketClient:
                             f"Failed to write to {self.path_orders_stored}: {e}"
                         )
 
-            if new_event and self.verbose_on_order_event:
-                self.logger.debug("New orders event processed")
+                if new_event and self.verbose_on_order_event:
+                    self.logger.debug("New orders event processed")
 
     def check_messages(self):
         while self.ACTIVE:

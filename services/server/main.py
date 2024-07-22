@@ -1,8 +1,8 @@
 from aiohttp import web
-from models import DWXClientParams
+from models import MTClientParams
 from settings import Settings
 from utils import Logger
-from internal import SocketIOServerClient
+from internal import SocketIOServerClient, MTSocketClient
 from handlers import RequestHandler
 
 
@@ -16,11 +16,11 @@ async def main():
     server_instance = await SocketIOServerClient.create_server(verbose=True)
     logger.info("Created Socket.IO Server Instance...")
 
-    dwx_client_params = DWXClientParams(mt_directory_path=settings.METATRADER_FILES_DIR)
+    mt_client_params = MTClientParams(mt_directory_path=settings.METATRADER_FILES_DIR)
 
     try:
         logger.info("Setting up Event Handlers...")
-        await RequestHandler.setup_event_handlers(dwx_client_params, server_instance)
+        await RequestHandler.setup_event_handlers(mt_client_params, server_instance)
 
         logger.info("Attaching Application to Server Instance...")
         app = web.Application()
@@ -37,3 +37,10 @@ async def main():
 if __name__ == "__main__":
     logger.info("API Server is starting up")
     web.run_app(main(), port=settings.PORT, access_log_format=" :: %r %s %T %t")
+
+
+#
+# TODO:
+# To slow down the server OR to ensure a synchronous operation
+# Why don you implement or add a Queue or Cache to the server
+#

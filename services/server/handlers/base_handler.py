@@ -1,51 +1,55 @@
-from abc import ABC
-import time
+from abc import ABC, abstractmethod
 from typing import Dict
-from internal import DWXClient, SocketIOServerClient
-from models import DWXClientParams
+from internal import MTSocketClient, SocketIOServerClient
+from models import MTClientParams
 from utils import Logger
 
 
 class BaseHandler(ABC):
     """
     The BaseHandler class provides a foundation for handling various events
-    from a trading system. It initializes a DWXClient, starts it, and defines
+    from a trading system. It initializes a MTSocketClient, starts it, and defines
     methods for handling different types of data and events. Subclasses should
     implement specific event handling methods according to their needs.
 
     Attributes:
-        dwx_client (DWXClient): The client to connect to the trading system.
+        mt_socket_client (MTSocketClient): The client to connect to the trading system.
         logger (Logger): Logger for logging information and errors.
         pubsub (SocketIOServerClient): Pub/Sub client for message subscriptions.
     """
 
     def __init__(
-        self, dwx_client_params: DWXClientParams, pubsub_instance: SocketIOServerClient
+        self,
+        mt_client_params: MTClientParams,
+        pubsub_instance: SocketIOServerClient,
+        verbose: bool = False,
     ):
         """
-        Initializes the BaseHandler with DWXClient parameters and a Pub/Sub client.
+        Initializes the BaseHandler with MTSocketClient and a Pub/Sub client.
 
         Args:
-            dwx_client_params (DWXClientParams): Parameters required to initialize DWXClient.
+            mt_socket_client (MTSocketClient): Parameters required to initialize MTSocketClient.
             pubsub_instance (SocketIOServerClient): The client for Pub/Sub messaging.
         """
         self.logger = Logger(name=__class__.__name__)
+        self.verbose = verbose
 
         try:
-            self.dwx_client = DWXClient(
+            self.logger.info("Setting up MetaTrader Socket Client...")
+            self.socket_client = MTSocketClient(
                 self,
-                dwx_client_params.mt_directory_path,
-                dwx_client_params.sleep_delay,
-                dwx_client_params.max_retry_command_seconds,
-                dwx_client_params.verbose,
+                metatrader_dir_path=mt_client_params.mt_directory_path,
+                sleep_delay=mt_client_params.sleep_delay,
+                max_retry_command_seconds=mt_client_params.max_retry_command_seconds,
+                verbose=mt_client_params.verbose,
+                logger=None,
             )
+            self.socket_client.clean_files()
+            self.socket_client.start()
         except Exception as e:  # Catch more specific errors
             raise ValueError(
                 "An error occurred while connecting to MetaTrader: ", e
             ) from e
-
-        time.sleep(1)
-        self.dwx_client.start()
 
         self.pubsub = pubsub_instance
 
@@ -58,7 +62,7 @@ class BaseHandler(ABC):
             bid (float): The bid price.
             ask (float): The ask price.
         """
-        return
+        pass
 
     def on_bar_data(
         self, symbol, time_frame, time, open_price, high, low, close_price, tick_volume
@@ -76,7 +80,7 @@ class BaseHandler(ABC):
             close_price (float): The closing price.
             tick_volume (int): The tick volume.
         """
-        return
+        pass
 
     def on_historic_data(self, symbol, time_frame, data: Dict[str, dict]):
         """
@@ -87,29 +91,28 @@ class BaseHandler(ABC):
             time_frame (str): The time frame of the data.
             data (Dict[str, dict]): The historic data as a dictionary.
         """
-        return
+        pass
 
-    def on_historic_trades(self):
+    def on_historic_trades(self, data: dict):
         """
         Handle incoming historic trades data.
         """
-        return
+        pass
 
-    def on_symbols_data(self, symbol_id, symbol_data):
+    def on_symbols_data(self, symbols_data):
         """
         Handle incoming symbols data.
 
         Args:
-            symbol_id (str): The ID of the symbol.
-            symbol_data (dict): The data related to the symbol.
+            symbols_data (dict): The data related to the symbol.
         """
-        return
+        pass
 
-    def on_order_event(self):
+    def on_order_event(self, open_orders, closed_orders):
         """
         Handle incoming order events.
         """
-        return
+        pass
 
     def on_message(self, message):
         """
@@ -118,10 +121,11 @@ class BaseHandler(ABC):
         Args:
             message (dict): The message data.
         """
-        if message["type"] == "ERROR":
-            self.logger.error(
-                f"| {message['type']} | {message['error_type']} | {message['description']}"
-            )
+        if self.verbose:
+            if message["type"] == "ERROR":
+                self.logger.error(
+                    f"| {message['type']} | {message['error_type']} | {message['description']}"
+                )
 
-        if message["type"] == "INFO":
-            self.logger.info(f"| {message['type']} | {message['message']}")
+            if message["type"] == "INFO":
+                self.logger.info(f"| {message['type']} | {message['message']}")

@@ -1,7 +1,8 @@
 requests
-websockets
+# websockets
 python-dotenv
 colorlog
+async-channel
 pydantic==2.8.0
 asyncio==3.4.3
 aiohttp==3.9.5

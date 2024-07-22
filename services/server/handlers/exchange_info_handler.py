@@ -1,7 +1,8 @@
 import asyncio
-from typing import List, Dict, Optional
+from datetime import datetime
+from typing import Callable, List, Dict, Optional
 from models import (
-    DWXClientParams,
+    MTClientParams,
     RateLimit,
     Symbol,
     SymbolData,
@@ -9,7 +10,7 @@ from models import (
     ExchangeInfoResponse,
     OrderType,
 )
-from internal import SocketIOServerClient
+from internal import SocketIOServerClient, MTSocketClient
 from utils import Logger, get_server_time
 from .base_handler import BaseHandler
 
@@ -27,24 +28,21 @@ class ExchangeInfoHandler(BaseHandler):
     Handler class for managing exchange information.
 
     Args:
-        dwx_client_params (DWXClientParams): Parameters for DWX client.
+        mt_socket_client (MTSocketClient): Parameters for DWX client.
         pubsub_instance (SocketIOServerClient): Instance of the Socket.IO server client.
     """
 
     def __init__(
         self,
-        dwx_client_params: DWXClientParams,
+        mt_client_params: MTClientParams,
         pubsub_instance: SocketIOServerClient,
     ):
-        super().__init__(dwx_client_params, pubsub_instance)
+        super().__init__(mt_client_params, pubsub_instance)
         self.logger = Logger(name=__class__.__name__)
         self.symbols_data: Dict[int, SymbolData] = {}
 
-    def on_symbols_data(self, symbol_id, symbol_data):
-        self.symbols_data[symbol_id] = SymbolData(**symbol_data)
-        self.logger.info(
-            f"on_symbols_data: symbol_id={symbol_id}, symbol_data={symbol_data}"
-        )
+    def on_symbols_data(self, symbols_data):
+        self.logger.debug(f"on_symbols_data: {symbols_data}")
 
     async def get_exchange_info(
         self,
@@ -69,36 +67,40 @@ class ExchangeInfoHandler(BaseHandler):
         serverTime = get_time.unix_timestamp
         rateLimits = []  # Add rate limits if available
         exchangeFilters = []  # Add exchange filters if available
+        all_symbols = []
 
         active_symbols = await self.get_active_symbols()
+        if active_symbols is not None:
+            for _, active_symbol in active_symbols.items():
+                symbol = Symbol(
+                    symbol=active_symbol.symbol,
+                    status="TRADING",
+                    baseAsset=active_symbol.symbol,
+                    baseAssetPrecision=8,
+                    quoteAsset=active_symbol.currency_base,
+                    quoteAssetPrecision=8,
+                    baseCommissionPrecision=8,
+                    quoteCommissionPrecision=8,
+                    orderTypes=OrderType.export_all(),
+                    icebergAllowed=True,
+                    ocoAllowed=True,
+                    otoAllowed=True,
+                    quoteOrderQtyMarketAllowed=True,
+                    allowTrailingStop=False,
+                    cancelReplaceAllowed=False,
+                    isSpotTradingAllowed=True,
+                    isMarginTradingAllowed=True,
+                    filters=[],
+                    permissions=Permission.export_all(),
+                    permissionSets=[Permission.export_all()],
+                    defaultSelfTradePreventionMode="NONE",
+                    allowedSelfTradePreventionModes=["NONE"],
+                )
+                all_symbols.append(symbol)
 
-        symbols = []
-        for active_symbol in active_symbols:
-            symbol = Symbol(
-                symbol=active_symbol.symbol,
-                status="TRADING",
-                baseAsset=active_symbol.symbol,
-                baseAssetPrecision=8,
-                quoteAsset=active_symbol.currency_base,
-                quoteAssetPrecision=8,
-                baseCommissionPrecision=8,
-                quoteCommissionPrecision=8,
-                orderTypes=OrderType.export_all(),
-                icebergAllowed=True,
-                ocoAllowed=True,
-                otoAllowed=True,
-                quoteOrderQtyMarketAllowed=True,
-                allowTrailingStop=False,
-                cancelReplaceAllowed=False,
-                isSpotTradingAllowed=True,
-                isMarginTradingAllowed=True,
-                filters=[],
-                permissions=Permission.export_all(),
-                permissionSets=[Permission.export_all()],
-                defaultSelfTradePreventionMode="NONE",
-                allowedSelfTradePreventionModes=["NONE"],
-            )
-            symbols.append(symbol)
+        if symbols is not None and len(symbols) > 0:
+            # filter symbols
+            pass
 
         sors_data = [{"baseAsset": "Step Index", "symbols": ["Step Index"]}]
 
@@ -107,11 +109,13 @@ class ExchangeInfoHandler(BaseHandler):
             server_time=serverTime,
             rate_limits=rateLimits,
             exchange_filters=exchangeFilters,
-            symbols=symbols,
+            symbols=all_symbols,
             sors=sors_data,
         )
 
-    async def get_active_symbols(self, symbol: str = "") -> List[SymbolData]:
+    async def get_active_symbols(
+        self, symbol: str = ""
+    ) -> Optional[Dict[int, SymbolData]]:
         """
         Retrieves active symbols.
 
@@ -121,16 +125,11 @@ class ExchangeInfoHandler(BaseHandler):
         Returns:
             List[SymbolData]: A list of active symbols.
         """
-        self.dwx_client.get_active_symbols(symbol)
-        await asyncio.sleep(0.5)
+        active_symbols = self.socket_client.get_active_symbols(symbol)
+        if active_symbols is None:
+            return None
 
-        if len(self.dwx_client.symbols_data) > 0 and len(self.symbols_data) == 0:
-            for symbol_id, symbol_data in self.dwx_client.symbols_data.items():
-                self.symbols_data[symbol_id] = SymbolData(**symbol_data)
+        for symbol_id, symbol_data in active_symbols.items():
+            self.symbols_data[symbol_id] = SymbolData(**symbol_data)
 
-        if len(symbol) > 0:
-            return [
-                data for data in self.symbols_data.values() if data.symbol == symbol
-            ]
-
-        return list(self.symbols_data.values())
+        return self.symbols_data

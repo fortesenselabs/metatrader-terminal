@@ -2,7 +2,7 @@ import asyncio
 from typing import List, Dict, Optional, Tuple, Union
 from datetime import datetime, timezone, timedelta
 from models import (
-    DWXClientParams,
+    MTClientParams,
     Events,
     SubscribeRequest,
     SubscribeResponse,
@@ -15,7 +15,7 @@ from models import (
     KlineResponse,
     HistoricalKlineRequest,
 )
-from internal import SocketIOServerClient
+from internal import SocketIOServerClient, MTSocketClient
 from utils import Logger, date_to_timestamp
 from .base_handler import BaseHandler
 
@@ -34,17 +34,19 @@ class KlineHandler(BaseHandler):
 
     def __init__(
         self,
-        dwx_client_params: DWXClientParams,
+        mt_client_params: MTClientParams,
         pubsub_instance: SocketIOServerClient,
     ):
         """
         Initializes the KlineHandler with DWXClient parameters and a Pub/Sub instance.
 
         Args:
-            dwx_client_params (DWXClientParams): Parameters for the DWX client.
+            mt_socket_client (MTSocketClient): Parameters for the DWX client.
             pubsub_instance (SocketIOServerClient): Instance of the SocketIOServerClient.
         """
-        super().__init__(dwx_client_params, pubsub_instance)
+
+        super().__init__(mt_client_params, pubsub_instance)
+
         self.logger = Logger(name=__class__.__name__)
         self.previous_klines: Dict[str, set] = {}
         self.current_on_tick_data: Optional[TickDataEvent] = None
@@ -195,11 +197,11 @@ class KlineHandler(BaseHandler):
                 symbol_data.mode != DataMode.TICK
                 and symbol_data.time_frame != TimeFrame.CURRENT
             ):
-                self.dwx_client.subscribe_symbols_bar_data(
+                self.socket_client.subscribe_symbols_bar_data(
                     [[symbol_data.symbol, symbol_data.time_frame.value]]
                 )
             else:
-                self.dwx_client.subscribe_symbols([symbol_data.symbol])
+                self.socket_client.subscribe_symbols([symbol_data.symbol])
             subscribed_symbols.append(symbol_data.symbol)
 
         return subscribed_symbols
@@ -256,7 +258,7 @@ class KlineHandler(BaseHandler):
             kline_request.limit,
         )
 
-        self.dwx_client.get_historic_data(
+        self.socket_client.get_historic_data(
             symbol=kline_request.symbol,
             time_frame=kline_request.time_frame.value,
             start=start_time,
