@@ -1,14 +1,17 @@
 import io
+import os
 from setuptools import setup, find_packages
+
+BASE_DIR = os.getcwd()
 
 
 def readme():
-    with io.open("README.md", encoding="utf-8") as f:
+    with io.open(f"{BASE_DIR}/README.md", encoding="utf-8") as f:
         return f.read()
 
 
 def requirements(filename):
-    with io.open(filename, encoding="utf-8") as f:
+    with io.open(f"{BASE_DIR}/{filename}", encoding="utf-8") as f:
         return [line.strip() for line in f.readlines()]
 
 
