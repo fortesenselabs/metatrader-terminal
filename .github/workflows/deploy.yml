@@ -1,4 +1,4 @@
-name: Deploy MetaTrader 5 Terminal
+name: Deploy MetaTrader 5 Terminal (with Socket.io)
 
 on:
   push:
@@ -23,8 +23,8 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v3
         with:
-          context: metatrader-5/
-          file: metatrader-5/Dockerfile.mt5
+          context: services/
+          file: services/Dockerfile.mt5
           platforms: linux/amd64
           push: true
-          tags: fortesenselabs/metatrader:lastest,fortesenselabs/metatrader:5
+          tags: fortesenselabs/metatrader-sockets:lastest,fortesenselabs/metatrader-sockets:5

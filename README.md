@@ -1,43 +1,42 @@
-![example workflow](https://github.com/FortesenseLabs/metatrader-terminal/actions/workflows/deploy.yml/badge.svg)
+![deploy workflow](https://github.com/FortesenseLabs/metatrader-terminal/actions/workflows/deploy.yml/badge.svg)
 
 # MetaTrader (with vnc-alpine)
 
-Imagine a dedicated server that acts as a bridge between your MetaTrader terminal and the world of automation and integration. That's the essence of Metatrader Service. It's a standalone server application designed to interact with your MetaTrader terminal using two powerful communication methods:
+Imagine a dedicated server that acts as a bridge between your MetaTrader terminal and the world of automation and integration. That's the essence of the Metatrader Service. It's a standalone server application designed to interact with your MetaTrader terminal using socket.io for efficient, real-time communication.
 
-- Websockets: This real-time communication protocol enables a constant two-way flow of data between the server and your terminal. This allows for instant updates and reactive actions based on market movements.
-- REST API: This industry-standard API provides a structured way to send requests and receive responses from the server. It offers flexibility for building various applications that interact with your MetaTrader data.
+- **socket.io**: This powerful library enables fast, reliable, bidirectional communication between the server and your terminal. It allows for instant updates and reactive actions based on market movements, making it ideal for financial applications.
 
 **Potential Use Cases:**
 
-- Copy Trading: Develop a system for replicating trades from successful traders directly on the server.
-- Risk Management: Implement automated risk management tools that monitor positions and react to market changes.
-- Backtesting & Optimization: Run backtests and optimize your trading strategies on the server without impacting your live trading activity.
-- Data Analysis and Research: Utilize the server to collect, store, and analyze historical and real-time market data for advanced research purposes.
+- **Copy Trading**: Develop a system for replicating trades from successful traders directly on the server.
+- **Risk Management**: Implement automated risk management tools that monitor positions and react to market changes.
+- **Backtesting & Optimization**: Run backtests and optimize your trading strategies on the server without impacting your live trading activity.
+- **Data Analysis and Research**: Utilize the server to collect, store, and analyze historical and real-time market data for advanced research purposes.
 
 ## Container
 
 The container provides a [VNC](https://en.wikipedia.org/wiki/Virtual_Network_Computing)-enabled and wine container based on Alpine Linux.
 
-The container is meant to serve a basis for containerised X11 applications wine . It has the following features:
+The container is meant to serve as a basis for containerized X11 applications using wine. It has the following features:
 
 - Openbox minimal Window Manager
 - Graphical login
 - wine64
 - python3
 
-Based on Alpine Linux, the container is less than 500 MB in size. Most of this is the X11 window system wine python3.
+Based on Alpine Linux, the container is less than 500 MB in size. Most of this is the X11 window system, wine, and python3.
 
 ### Extra:
 
 - Metatrader 5 64bit
 - dwxconnect expert adviser datafeed [dwxconnect](https://github.com/darwinex/dwxconnect)
-- Server (with REST and websockets)
+- Server (with socket.io)
 
 ## Usage
 
-Metatrader 5 on docker and VNC
+Metatrader 5 on Docker and VNC
 
-Open your preferred VNC viewer and goto localhost:5900
+Open your preferred VNC viewer and go to `localhost:5900`.
 
 ### Connect to the MT5 Terminal via VNC
 
@@ -48,13 +47,13 @@ You can interact with the MT5 terminal using a graphical interface via VNC. Use 
 - **Username**: root
 - **Password**: root
 
-### Access the API Server
+### Access the socket.io Server
 
-To manage the MT5 terminal via the API server, open your browser and navigate to [http://localhost:8000/docs](http://localhost:8000/docs). The documentation provides an overview of the available API endpoints and their usage, allowing you to interact programmatically with the MT5 terminal.
+To manage the MT5 terminal via the socket.io server, configure your application to connect to `localhost:3000` using the socket.io protocol. This allows you to interact programmatically with the MT5 terminal.
 
 ## Development
 
-Create a .env file from the .env.example file
+Create a `.env` file from the `.env.example` file.
 
 ```bash
 python -m venv .venv # (use python3.9)
@@ -69,19 +68,19 @@ login: root
 password: root
 ```
 
-run and build image named as fortesenselabsmt and run container named as fortesenselabsmt
+Run and build an image named `fortesenselabsmt` and run the container named `fortesenselabsmt`.
 
 ```bash
 make run
 ```
 
-build image named fortesenselabsmt
+Build image named `fortesenselabsmt`.
 
 ```bash
 make build
 ```
 
-login to shell
+Login to the shell.
 
 ```bash
  make shell
@@ -89,18 +88,21 @@ login to shell
 
 ## TODOS
 
-- write a client in python (can follow the python-binance format)
+- Write a client in Python.
+- Add filter params for exchange info handler
+- Fix wait time for order closing requests in server, if sleep is removed close request are too fast, if sleep is added close request are quite slow
+- Fix vnc screen mode, the metatrader full screen mode only shows in one part of the screen
 
 ## Resources
 
-- https://github.com/AwesomeTrading/Backtrader-MQL5-API
-- https://github.com/orgs/AwesomeTrading/
-- https://www.mtsocketapi.com/doc5/for_developers/Python.html
-- https://github.com/AwesomeTrading/lws2mql
-- https://www.oreilly.com/library/view/mastering-financial-pattern/9781098120467/ch01.html
-- https://github.com/ejtraderLabs/Metatrader5-Docker
+- [Backtrader-MQL5-API](https://github.com/AwesomeTrading/Backtrader-MQL5-API)
+- [AwesomeTrading](https://github.com/orgs/AwesomeTrading/)
+- [MTSocketAPI Python](https://www.mtsocketapi.com/doc5/for_developers/Python.html)
+- [lws2mql](https://github.com/AwesomeTrading/lws2mql)
+- [Mastering Financial Pattern](https://www.oreilly.com/library/view/mastering-financial-pattern/9781098120467/ch01.html)
+- [Metatrader5-Docker](https://github.com/ejtraderLabs/Metatrader5-Docker)
 
-## Errors:
+## Errors
 
 ```bash
  89.47 ERROR: unable to select packages:
@@ -108,14 +110,14 @@ login to shell
      89.54     required by: world[libressl3.1-libcrypto]
 ```
 
-You can use the link to check if the alpine packages exists in their respective branches in the repo:
+You can use the link to check if the Alpine packages exist in their respective branches in the repo:
 https://pkgs.alpinelinux.org/contents?file=&path=&name=x11vnc&branch=edge&repo=community&arch=x86_64
 
 ### linux/arm64 build failing
 
-linux/arm64 building failing out of the two platforms in pipeline
+Linux/arm64 building failing out of the two platforms in the pipeline:
 
-platforms: linux/amd64, linux/arm64
+Platforms: `linux/amd64`, `linux/arm64`
 
 ```bash
 3.282 (22/22) Installing samba-winbind (4.15.13-r0)
@@ -166,7 +168,6 @@ wine ./terminal64.exe '/portable' '/config:C:\Program Files\Metatrader 5\Config\
 # self.log_formatter = logging.Formatter(
 #             "%(asctime)s [%(processName)s: %(process)d] [%(threadName)s: %(thread)d] [%(levelname)s] %(name)s: %(message)s"
 #         )
-
 ```
 
 **Config:**
@@ -179,7 +180,6 @@ wine ./terminal64.exe '/portable' '/config:C:\Program Files\Metatrader 5\Config\
 # print(
 #     docker_settings.metatrader_files_dir
 # )
-
 
 # MetaTraderFilesDir: str = os.environ.get("MT_FILES_DIR")
 # PYDANTIC_SETTINGS_PREFIX = os.environ.get("PYDANTIC_SETTINGS_POSTFIX", "")
@@ -200,5 +200,21 @@ wine ./terminal64.exe '/portable' '/config:C:\Program Files\Metatrader 5\Config\
 # test_settings = Settings(".test")
 
 # print(docker_settings.metatrader_files_dir)  # This will print the value from the .docker environment variable
+```
 
+**BaseHandler: **
+
+```python
+        try:
+            self.dwx_client = DWXClient(
+                self,
+                dwx_client_params.mt_directory_path,
+                dwx_client_params.sleep_delay,
+                dwx_client_params.max_retry_command_seconds,
+                dwx_client_params.verbose,
+            )
+        except (ConnectionError, DWXClientError) as e:  # Catch more specific errors
+            raise ValueError(
+                "An error occurred while connecting to MetaTrader: ", e
+            ) from e
 ```

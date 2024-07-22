@@ -1,0 +1,10 @@
+requests
+# websockets
+python-dotenv
+colorlog
+async-channel
+pydantic==2.8.0
+asyncio==3.4.3
+aiohttp==3.9.5
+aiofiles==24.1.0
+python-socketio==5.11.3

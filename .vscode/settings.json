@@ -13,6 +13,13 @@
     "iterator": "c",
     "vector": "c",
     "system_error": "c",
-    "__locale": "c"
-  }
+    "__locale": "c",
+    "*.mqh": "c",
+    "filesystem": "c",
+    "iosfwd": "c",
+    "__string": "c"
+  },
+  "C_Cpp.default.includePath": [
+    "/home/fortesenselabs/Tech/labs/Financial_Eng/Financial Markets/lab/Metatrader5[Test]/MQL5/Include"
+  ]
 }
