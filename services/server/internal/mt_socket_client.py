@@ -790,8 +790,8 @@ class MTSocketClient:
         self,
         symbol="EURUSD",
         time_frame="D1",
-        start=(datetime.now(timezone.utc) - timedelta(days=30)).timestamp(),
-        end=datetime.now(timezone.utc).timestamp(),
+        start=0,
+        end=0,
     ):
         """Sends a GET_HISTORIC_DATA command to request historic data.
 
@@ -810,6 +810,14 @@ class MTSocketClient:
         """
 
         # start_date.strftime('%Y.%m.%d %H:%M:00')
+        # start = (datetime.now(timezone.utc) - timedelta(days=30)).timestamp()
+        # end = datetime.now(timezone.utc).timestamp()
+        if isinstance(start, datetime):
+            start = start.timestamp()
+        
+        if isinstance(end, datetime):
+            end = end.timestamp()
+
         request_data = [symbol, time_frame, int(start), int(end)]
         self.send_command("GET_HISTORIC_DATA", ",".join(str(p) for p in request_data))
         return

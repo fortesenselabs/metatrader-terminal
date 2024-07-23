@@ -252,7 +252,7 @@ class KlineHandler(BaseHandler):
             ),
             (
                 datetime.fromtimestamp(kline_request.end_time)
-                if kline_request.start_time is not None
+                if kline_request.end_time is not None
                 else None
             ),
             kline_request.limit,
