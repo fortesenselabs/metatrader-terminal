@@ -2,7 +2,7 @@ import io
 import os
 from setuptools import setup, find_packages
 
-VERSION = "0.0.3"
+VERSION = "0.0.4"
 BASE_DIR = os.path.dirname(os.path.realpath(__file__))
 
 
