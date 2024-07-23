@@ -20,7 +20,7 @@ setup(
     name="metatrader-sockets-client",
     version=VERSION,
     packages=find_packages(),
-    url="https://github.com/FortesenseLabs/metatrader-terminal/clients/metatrader-sockets",
+    url="https://github.com/FortesenseLabs/metatrader-terminal",
     download_url=f"https://github.com/FortesenseLabs/metatrader-terminal/releases/tag/{VERSION}",
     license="GPL-3.0",
     author="Fortesense Labs",
