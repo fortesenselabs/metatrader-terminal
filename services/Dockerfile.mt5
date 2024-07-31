@@ -21,7 +21,7 @@ RUN Xdummy -install
 # ----------------------------------------------------------------------------
 
 LABEL org.opencontainers.image.source=https://github.com/FortesenseLabs/metatrader-terminal
-LABEL org.opencontainers.image.description="Metatrader 5 Terminal(with nats server)"
+LABEL org.opencontainers.image.description="Metatrader 5 Terminal API"
 LABEL org.opencontainers.image.licenses=MIT
 
 # ----------------------------------------------------------------------------
