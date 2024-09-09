@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Metatrader5
+Comment=Trading platform
+Exec=wine /opt/wineprefix/drive_c/Metatrader-5/terminal64.exe /portable
+Icon=terminal
+Terminal=false
+Categories=Finance

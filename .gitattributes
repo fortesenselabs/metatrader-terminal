@@ -3,3 +3,4 @@
 *.json linguist-detectable=false
 *go.sum linguist-language=go
 *go.mod linguist-language=go
+*.tar.gz filter=lfs diff=lfs merge=lfs -text

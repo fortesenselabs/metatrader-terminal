@@ -1,0 +1,24 @@
+{
+    order webdav last
+}
+:8080 {
+    log
+    root * /data
+    reverse_proxy mt5-app:8080
+
+    handle_path /files/* {         
+        file_server browse
+    }
+    redir /files /files/
+
+    handle /webdav/* {
+        webdav {             
+            prefix /webdav         
+        }
+    }
+    redir /webdav /webdav/
+
+    basicauth /* {
+        {env.APP_USERNAME} {env.APP_PASSWORD_HASH}
+    }
+}
