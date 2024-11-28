@@ -33,7 +33,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 1
+          lfs: true
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -51,7 +51,7 @@ jobs:
         id: branch-name
         uses: tj-actions/branch-names@v8.0.1
 
-      - name: Build MetaTrader 5 Terminal image (latest)
+      - name: Build and Push MetaTrader 5 Terminal image (latest) to DockerHub
         if: ${{ steps.branch-name.outputs.current_branch == 'main' }}
         id: mt5_build_latest
         uses: docker/build-push-action@v3
@@ -66,27 +66,23 @@ jobs:
       - name: Digest metatrader5-terminal image
         run: echo ${{ steps.mt5_build_latest.outputs.digest }}
 
-      # - name: Login to GHCR
-      #   uses: docker/login-action@v3.1.0
-      #   with:
-      #     registry: ghcr.io
-      #     username: ${{ github.repository_owner }}
-      #     password: ${{ secrets.PACKAGES_TOKEN }}
+      - name: Login to GHCR
+        uses: docker/login-action@v3.1.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.PACKAGES_TOKEN }}
 
-      # - name: Get branch name
-      #   id: branch-name
-      #   uses: tj-actions/branch-names@v8.0.1
-
-      # - name: Build MetaTrader 5 Terminal image (latest)
-      #   if: ${{ steps.branch-name.outputs.current_branch == 'main' }}
-      #   id: mt5_build_latest
-      #   uses: docker/build-push-action@v3
-      #   with:
-      #     file: "infrastructure/MetaTrader5/Dockerfile"
-      #     context: "infrastructure/MetaTrader5/"
-      #     push: true
-      #     tags: ghcr.io/${{ github.repository_owner }}/metatrader5-terminal:latest
-      #     cache-from: type=gha
-      #     cache-to: type=gha
-      # - name: Digest metatrader5-terminal image
-      #   run: echo ${{ steps.mt5_build_latest.outputs.digest }}
+      - name: Build and Push MetaTrader 5 Terminal image (latest) to Github Packages
+        if: ${{ steps.branch-name.outputs.current_branch == 'main' }}
+        id: mt5_build_ghcr_latest
+        uses: docker/build-push-action@v3
+        with:
+          file: "infrastructure/MetaTrader5/Dockerfile"
+          context: "infrastructure/MetaTrader5/"
+          push: true
+          tags: ${{ github.repository_owner }}/metatrader5-terminal:latest,${{ github.repository_owner }}/metatrader5-terminal:${{ github.sha }},${{ github.repository_owner }}/metatrader5-terminal:${{ github.run_id }}
+          cache-from: type=gha
+          cache-to: type=gha
+      - name: Digest metatrader5-terminal image
+        run: echo ${{ steps.mt5_build_ghcr_latest.outputs.digest }}
