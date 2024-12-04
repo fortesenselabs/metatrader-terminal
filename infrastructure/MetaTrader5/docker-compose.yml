@@ -1,0 +1,13 @@
+services:
+  metatrader5:
+    image: docker.io/fortesenselabs/metatrader5-terminal:latest
+    ports:
+      - "18812:18812"
+      - "5900:5900"
+    environment:
+      MT5_ACCOUNT_NUMBER: ${MT5_ACCOUNT_NUMBER}
+      MT5_PASSWORD: ${MT5_PASSWORD}
+      MT5_SERVER: ${MT5_SERVER}
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
