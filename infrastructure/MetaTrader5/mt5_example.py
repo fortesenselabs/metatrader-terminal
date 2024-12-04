@@ -1,7 +1,7 @@
 import os
 import time
 import pandas as pd
-from metatrader5 import MetaTrader5
+from MetaTrader5 import MetaTrader5
 from dotenv import load_dotenv
 
 load_dotenv()
